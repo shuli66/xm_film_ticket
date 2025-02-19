@@ -83,10 +83,15 @@ public class RecommendationService {
 
     // 计算余弦相似度
     private double calculateCosineSimilarity(Map<Integer, Double> userRatings1, Map<Integer, Double> userRatings2) {
+        if (userRatings1 == null || userRatings2 == null) {
+            return 0.0; // 如果任意一个用户的评分数据为 null，直接返回 0.0
+        }
+
         double dotProduct = 0.0;
         double norm1 = 0.0;
         double norm2 = 0.0;
 
+        // 计算余弦相似度
         for (Map.Entry<Integer, Double> entry : userRatings1.entrySet()) {
             Integer filmId = entry.getKey();
             if (userRatings2.containsKey(filmId)) {
@@ -96,8 +101,10 @@ public class RecommendationService {
             }
         }
 
-        return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
+        // 如果其中任何一个用户的评分数据为空，则返回 0
+        return (norm1 == 0 || norm2 == 0) ? 0.0 : dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
     }
+
 
     // 获取电影推荐列表
     public List<Film> recommendFilmsByUser(Integer userId) {
