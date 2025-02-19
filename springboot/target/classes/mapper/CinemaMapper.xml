@@ -1,0 +1,107 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.CinemaMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Cinema">
+        select * from `cinema`
+        <where>
+            <if test="name != null"> and name like concat('%', #{name}, '%')</if>
+            <if test="status != null"> and status = #{status}</if>
+        </where>
+    </select>
+
+    <delete id="deleteById">
+        delete from `cinema`
+        where id = #{id}
+    </delete>
+
+    <!-- insert into cinema (username, password, ...) values ('cinema', 'cinema', ...) -->
+    <insert id="insert" parameterType="com.example.entity.Cinema" useGeneratedKeys="true">
+        insert into `cinema`
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="username != null">username,</if>
+            <if test="password != null">password,</if>
+            <if test="name != null">name,</if>
+            <if test="phone != null">phone,</if>
+            <if test="email != null">email,</if>
+            <if test="avatar != null">avatar,</if>
+            <if test="role != null">role,</if>
+            <if test="address != null">address,</if>
+            <if test="leader != null">leader,</if>
+            <if test="code != null">code,</if>
+            <if test="front != null">front,</if>
+            <if test="back != null">back,</if>
+            <if test="certificate != null">certificate,</if>
+            <if test="status != null">status,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="username != null">#{username},</if>
+            <if test="password != null">#{password},</if>
+            <if test="name != null">#{name},</if>
+            <if test="phone != null">#{phone},</if>
+            <if test="email != null">#{email},</if>
+            <if test="avatar != null">#{avatar},</if>
+            <if test="role != null">#{role},</if>
+            <if test="address != null">#{address},</if>
+            <if test="leader != null">#{leader},</if>
+            <if test="code != null">#{code},</if>
+            <if test="front != null">#{front},</if>
+            <if test="back != null">#{back},</if>
+            <if test="certificate != null">#{certificate},</if>
+            <if test="status != null">#{status},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Cinema">
+        update `cinema`
+        <set>
+            <if test="username != null">
+                username = #{username},
+            </if>
+            <if test="password != null">
+                password = #{password},
+            </if>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="phone != null">
+                phone = #{phone},
+            </if>
+            <if test="email != null">
+                email = #{email},
+            </if>
+            <if test="avatar != null">
+                avatar = #{avatar},
+            </if>
+            <if test="role != null">
+                role = #{role},
+            </if>
+            <if test="address != null">
+                address = #{address},
+            </if>
+            <if test="leader != null">
+                leader = #{leader},
+            </if>
+            <if test="code != null">
+                code = #{code},
+            </if>
+            <if test="front != null">
+                front = #{front},
+            </if>
+            <if test="back != null">
+                back = #{back},
+            </if>
+            <if test="certificate != null">
+                certificate = #{certificate},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>

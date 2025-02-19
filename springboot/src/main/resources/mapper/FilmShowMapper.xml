@@ -1,0 +1,71 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.FilmShowMapper">
+
+    <select id="selectAll" resultType="com.example.entity.FilmShow">
+        select film_show.*, film.title as filmName, film.img as filmImg, room.name as roomName, cinema.name as cinemaName from `film_show`
+        left join film on film_show.film_id = film.id
+        left join room on film_show.room_id = room.id
+        left join cinema on film_show.cinema_id = cinema.id
+        <where>
+            <if test="cinemaName != null"> and cinema.name like concat('%', #{cinemaName}, '%')</if>
+            <if test="filmName != null"> and film.title like concat('%', #{filmName}, '%')</if>
+            <if test="time != null"> and film_show.time like concat('%', #{time}, '%')</if>
+            <if test="status != null"> and film_show.status = #{status}</if>
+            <if test="cinemaId != null"> and film_show.cinema_id = #{cinemaId}</if>
+            <if test="filmId != null"> and film_show.film_id = #{filmId}</if>
+        </where>
+        order by id desc
+    </select>
+
+    <delete id="deleteById">
+        delete from `film_show`
+        where id = #{id}
+    </delete>
+
+    <insert id="insert" parameterType="com.example.entity.FilmShow" useGeneratedKeys="true">
+        insert into `film_show`
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="filmId != null">film_id,</if>
+            <if test="roomId != null">room_id,</if>
+            <if test="cinemaId != null">cinema_id,</if>
+            <if test="time != null">time,</if>
+            <if test="price != null">price,</if>
+            <if test="status != null">status,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="filmId != null">#{filmId},</if>
+            <if test="roomId != null">#{roomId},</if>
+            <if test="cinemaId != null">#{cinemaId},</if>
+            <if test="time != null">#{time},</if>
+            <if test="price != null">#{price},</if>
+            <if test="status != null">#{status},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.FilmShow">
+        update `film_show`
+        <set>
+            <if test="filmId != null">
+                film_id = #{filmId},
+            </if>
+            <if test="roomId != null">
+                room_id = #{roomId},
+            </if>
+            <if test="time != null">
+                time = #{time},
+            </if>
+            <if test="price != null">
+                price = #{price},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>

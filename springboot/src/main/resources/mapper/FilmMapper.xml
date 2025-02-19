@@ -1,0 +1,126 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.FilmMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Film">
+        select film.*, area.title as areaName from `film`
+        left join area on film.area_id = area.id
+        <where>
+            <if test="title != null"> and film.title like concat('%', #{title}, '%')</if>
+            <if test="status != null"> and status = #{status}</if>
+            <if test="areaId != null"> and area_id = #{areaId}</if>
+            <if test="typeId != null"> and type_ids like concat('%', #{typeId}, '%')</if>
+            <if test="year != null"> and start like concat('%', #{year}, '%')</if>
+        </where>
+    </select>
+
+
+    <!-- 根据用户ID获取该用户收藏的电影 -->
+    <select id="getFilmsByUserId" resultType="com.example.entity.Film">
+        SELECT f.id, f.title, f.english, f.start, f.time, f.type_ids, f.language, f.resolution,
+               f.content, f.img, f.employ, f.area_id, f.status, f.score, f.total
+        FROM film f
+                 INNER JOIN collect c ON f.id = c.film_id
+        WHERE c.user_id = #{userId}
+    </select>
+
+
+    <!-- 根据分类ID获取电影 -->
+    <select id="getFilmsByCategory" resultType="com.example.entity.Film">
+        SELECT f.id, f.title, f.english, f.start, f.time, f.type_ids, f.language, f.resolution,
+               f.content, f.img, f.employ, f.area_id, f.status, f.score, f.total
+        FROM film f
+        WHERE FIND_IN_SET(#{categoryId}, f.type_ids) > 0
+    </select>
+
+
+    <delete id="deleteById">
+        delete from `film`
+        where id = #{id}
+    </delete>
+
+    <insert id="insert" parameterType="com.example.entity.Film" useGeneratedKeys="true">
+        insert into `film`
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="title != null">title,</if>
+            <if test="content != null">content,</if>
+            <if test="time != null">time,</if>
+            <if test="english != null">english,</if>
+            <if test="start != null">start,</if>
+            <if test="typeIds != null">type_ids,</if>
+            <if test="language != null">language,</if>
+            <if test="resolution != null">resolution,</if>
+            <if test="img != null">img,</if>
+            <if test="employ != null">employ,</if>
+            <if test="areaId != null">area_id,</if>
+            <if test="status != null">status,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="title != null">#{title},</if>
+            <if test="content != null">#{content},</if>
+            <if test="time != null">#{time},</if>
+            <if test="english != null">#{english},</if>
+            <if test="start != null">#{start},</if>
+            <if test="typeIds != null">#{typeIds},</if>
+            <if test="language != null">#{language},</if>
+            <if test="resolution != null">#{resolution},</if>
+            <if test="img != null">#{img},</if>
+            <if test="employ != null">#{employ},</if>
+            <if test="areaId != null">#{areaId},</if>
+            <if test="status != null">#{status},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Film">
+        update `film`
+        <set>
+            <if test="title != null">
+                title = #{title},
+            </if>
+            <if test="content != null">
+                content = #{content},
+            </if>
+            <if test="time != null">
+                time = #{time},
+            </if>
+            <if test="english != null">
+                english = #{english},
+            </if>
+            <if test="start != null">
+                start = #{start},
+            </if>
+            <if test="typeIds != null">
+                type_ids = #{typeIds},
+            </if>
+            <if test="language != null">
+                language = #{language},
+            </if>
+            <if test="resolution != null">
+                resolution = #{resolution},
+            </if>
+            <if test="img != null">
+                img = #{img},
+            </if>
+            <if test="employ != null">
+                employ = #{employ},
+            </if>
+            <if test="areaId != null">
+                area_id = #{areaId},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="score != null">
+                score = #{score},
+            </if>
+            <if test="total != null">
+                total = #{total},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>

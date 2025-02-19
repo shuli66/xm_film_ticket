@@ -1,0 +1,39 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ScoreMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Score">
+        select score.*, user.name as userName, film.title as filmName, film.img as filmImg from `score`
+        left join user on score.user_id = user.id
+        left join film on score.film_id = film.id
+        <where>
+            <if test="filmName != null"> and film.title like concat('%', #{filmName}, '%')</if>
+            <if test="filmId != null"> and score.film_id = #{filmId}</if>
+            <if test="userId != null"> and score.user_id = #{userId}</if>
+        </where>
+        order by id desc
+    </select>
+
+    <delete id="deleteById">
+        delete from `score`
+        where id = #{id}
+    </delete>
+
+    <insert id="insert" parameterType="com.example.entity.Score" useGeneratedKeys="true">
+        insert into `score`
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="filmId != null">film_id,</if>
+            <if test="score != null">score,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="filmId != null">#{filmId},</if>
+            <if test="score != null">#{score},</if>
+        </trim>
+    </insert>
+
+</mapper>

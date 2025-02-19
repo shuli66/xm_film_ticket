@@ -1,0 +1,57 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.ActorMapper">
+
+    <select id="selectAll" resultType="com.example.entity.Actor">
+        select actor.*, film.title as filmName, film.img as filmImg from `actor`
+        left join film on actor.film_id = film.id
+        <where>
+            <if test="name != null"> and name like concat('%', #{name}, '%')</if>
+            <if test="filmId != null"> and actor.film_id = #{filmId}</if>
+        </where>
+    </select>
+
+    <delete id="deleteById">
+        delete from `actor`
+        where id = #{id}
+    </delete>
+
+    <insert id="insert" parameterType="com.example.entity.Actor" useGeneratedKeys="true">
+        insert into `actor`
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="filmId != null">film_id,</if>
+            <if test="name != null">name,</if>
+            <if test="role != null">role,</if>
+            <if test="avatar != null">avatar,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="filmId != null">#{filmId},</if>
+            <if test="name != null">#{name},</if>
+            <if test="role != null">#{role},</if>
+            <if test="avatar != null">#{avatar},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.Actor">
+        update `actor`
+        <set>
+            <if test="filmId != null">
+                film_id = #{filmId},
+            </if>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="role != null">
+                role = #{role},
+            </if>
+            <if test="avatar != null">
+                avatar = #{avatar},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>
