@@ -44,21 +44,25 @@ public class OrdersService {
         orders.setUserId(currentUser.getId());
         orders.setOrderNo(DateUtil.format(new Date(), "yyyyMMddHHmmss"));
         orders.setCreateTime(DateUtil.now());
-        orders.setStatus("待取票");
+        orders.setStatus("待支付");
+
         // 计算订单总价格
         FilmShow filmShow = filmShowMapper.selectById(orders.getShowId());
         orders.setPrice(filmShow.getPrice() * orders.getSeatList().size());
-        // 转换一下座位信息
         orders.setSeat(JSONUtil.toJsonStr(orders.getSeatList()));
-        // 判断用户钱够不够
+
+        // 判断余额是否足够
         User user = userMapper.selectById(currentUser.getId());
         if (user.getAccount() < orders.getPrice()) {
             throw new CustomException("500", "您的账户余额不足，请到个人中心充值");
         }
+
+        // 扣除余额并插入订单
         user.setAccount(user.getAccount() - orders.getPrice());
         userMapper.updateById(user);
         ordersMapper.insert(orders);
-        // 更新一下电影的票房
+
+        // 更新票房
         Film film = filmMapper.selectById(orders.getFilmId());
         film.setTotal(film.getTotal() + orders.getPrice());
         filmMapper.updateById(film);
