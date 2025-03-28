@@ -10,7 +10,6 @@ const request = axios.create({
     baseURL: import.meta.env.VITE_BASE_URL,
     timeout: 30000 // 后台接口超时时间
 });
-
 // request 拦截器
 request.interceptors.request.use(config => {
     config.headers['Content-Type'] = 'application/json;charset=utf-8';
@@ -39,7 +38,6 @@ request.interceptors.response.use(
                 isTokenExpired = true;  // 标记为 token 已失效
                 isRedirecting = true;  // 标记为正在跳转到登录页
                 ElMessage.error("Token验证失败，请重新登录");
-
                 // 清除本地缓存中的 token
                 localStorage.removeItem('xm-user');
                 router.push('/login');  // 跳转到登录页面

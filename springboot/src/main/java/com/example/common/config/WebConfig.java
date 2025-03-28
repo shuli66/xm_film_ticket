@@ -13,9 +13,17 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(jwtInterceptor).addPathPatterns("/**")
-                .excludePathPatterns("/")
-                .excludePathPatterns("/login", "/register", "/files/**");
+        // 添加拦截器，拦截所有请求，排除登录、注册和文件相关的请求
+        registry.addInterceptor(jwtInterceptor)
+                .addPathPatterns("/**")  // 拦截所有请求路径
+                .excludePathPatterns("/alipay/notify", "/alipay/pay")
+                .excludePathPatterns(  // 排除的路径
+                        "/",
+                        "/login",
+                        "/register",
+                        "/files/**",
+                        "/favicon.ico" // 可选：排除请求favicon.ico
+                );
     }
-
 }
+

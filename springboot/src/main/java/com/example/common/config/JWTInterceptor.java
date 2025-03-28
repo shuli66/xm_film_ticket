@@ -40,6 +40,8 @@ public class JWTInterceptor implements HandlerInterceptor {
             // 如果没拿到，那么再从请求参数里拿一次
             request.getParameter(Constants.TOKEN);
         }
+
+
         // 2. 开始执行认证
         if (ObjectUtil.isNull(token)) {
             throw new CustomException(ResultCodeEnum.TOKEN_INVALID_ERROR);

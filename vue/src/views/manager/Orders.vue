@@ -7,6 +7,7 @@
         <el-option label="待取票" value="待取票" />
         <el-option label="已取票" value="已取票" />
         <el-option label="已退票" value="已退票" />
+        <el-option label="待支付" value="待支付" />
       </el-select>
       <el-button type="info" plain @click="load">查询</el-button>
       <el-button type="warning" plain style="margin: 0 10px" @click="reset">重置</el-button>
@@ -42,6 +43,7 @@
                 <el-tag v-if="props.row.status === '待取票'" type="warning">{{ props.row.status }}</el-tag>
                 <el-tag v-if="props.row.status === '已取票'" type="success">{{ props.row.status }}</el-tag>
                 <el-tag v-if="props.row.status === '已退票'" type="danger">{{ props.row.status }}</el-tag>
+                <el-tag v-if="props.row.status === '待支付'" type="primary">{{ props.row.status }}</el-tag>
               </el-descriptions-item>
             </el-descriptions>
           </template>
@@ -73,6 +75,7 @@
             <el-tag v-if="scope.row.status === '待取票'" type="warning">{{ scope.row.status }}</el-tag>
             <el-tag v-if="scope.row.status === '已取票'" type="success">{{ scope.row.status }}</el-tag>
             <el-tag v-if="scope.row.status === '已退票'" type="danger">{{ scope.row.status }}</el-tag>
+            <el-tag v-if="scope.row.status === '待支付'" type="primary">{{ scope.row.status }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="100" fixed="right">

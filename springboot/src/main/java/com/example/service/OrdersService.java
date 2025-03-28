@@ -51,21 +51,11 @@ public class OrdersService {
         orders.setPrice(filmShow.getPrice() * orders.getSeatList().size());
         orders.setSeat(JSONUtil.toJsonStr(orders.getSeatList()));
 
-        // 判断余额是否足够
         User user = userMapper.selectById(currentUser.getId());
-        if (user.getAccount() < orders.getPrice()) {
-            throw new CustomException("500", "您的账户余额不足，请到个人中心充值");
-        }
 
-        // 扣除余额并插入订单
-        user.setAccount(user.getAccount() - orders.getPrice());
         userMapper.updateById(user);
         ordersMapper.insert(orders);
 
-        // 更新票房
-        Film film = filmMapper.selectById(orders.getFilmId());
-        film.setTotal(film.getTotal() + orders.getPrice());
-        filmMapper.updateById(film);
     }
 
     public void updateById(Orders orders) {
@@ -116,10 +106,10 @@ public class OrdersService {
         }
         orders.setStatus("已退票");
         ordersMapper.updateById(orders);
-        // 返回用户的钱
-        User user = userMapper.selectById(orders.getUserId());
-        user.setAccount(user.getAccount() + orders.getPrice());
-        userMapper.updateById(user);
+//        // 返回用户的钱
+//        User user = userMapper.selectById(orders.getUserId());
+//        user.setAccount(user.getAccount() + orders.getPrice());
+//        userMapper.updateById(user);
         // 扣除电影的票房
         Film film = filmMapper.selectById(orders.getFilmId());
         if (ObjectUtil.isNotEmpty(film)) {
@@ -148,5 +138,9 @@ public class OrdersService {
                 .filter(x -> !"已退票".equals(x.getStatus()) && x.getCreateTime().contains(DateUtil.today()))
                 .mapToDouble(Orders::getPrice)
                 .sum();
+    }
+
+    public Orders selectByOrderNo(String orderNo) {
+        return ordersMapper.selectByOrderNo(orderNo);
     }
 }

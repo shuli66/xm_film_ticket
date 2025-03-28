@@ -1,6 +1,5 @@
 package com.example.entity;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import java.time.LocalDateTime;
 

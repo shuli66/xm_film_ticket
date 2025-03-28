@@ -3,25 +3,25 @@ package com.example.entity;
 import java.util.List;
 
 public class Orders {
-    private Integer id;
-    private String orderNo;
-    private Integer userId;
-    private Integer filmId;
-    private Integer cinemaId;
-    private Integer roomId;
-    private String time;
-    private String createTime;
+    private Integer id; // 主键id
+    private String orderNo;// 订单号
+    private Integer userId;// 用户id
+    private Integer filmId;// 电影id
+    private Integer cinemaId;// 影院id
+    private Integer roomId;// 影厅id
+    private String time;//  放映time
+    private String createTime;// 创建时间
     private String seat;  // [1排2座,3排4座]
-    private Double price;
-    private String status;
+    private Double price;// 价格
+    private String status;// 订单状态
 
     private List<Seat> seatList;
-    private String userName;
-    private String filmName;
-    private String filmImg;
-    private String cinemaName;
-    private String roomName;
-    private Integer showId;
+    private String userName;// 用户名称
+    private String filmName;// 电影名称
+    private String filmImg;// 电影图片
+    private String cinemaName;// 影院名称
+    private String roomName;// 影厅名称
+    private Integer showId;// 场次id
 
     public Integer getId() {
         return id;
@@ -165,5 +165,29 @@ public class Orders {
 
     public void setRoomName(String roomName) {
         this.roomName = roomName;
+    }
+
+    @Override
+    public String toString() {
+        return "Orders{" +
+                "id=" + id +
+                ", orderNo='" + orderNo + '\'' +
+                ", userId=" + userId +
+                ", filmId=" + filmId +
+                ", cinemaId=" + cinemaId +
+                ", roomId=" + roomId +
+                ", time='" + time + '\'' +
+                ", createTime='" + createTime + '\'' +
+                ", seat='" + seat + '\'' +
+                ", price=" + price +
+                ", status='" + status + '\'' +
+                ", seatList=" + seatList +
+                ", userName='" + userName + '\'' +
+                ", filmName='" + filmName + '\'' +
+                ", filmImg='" + filmImg + '\'' +
+                ", cinemaName='" + cinemaName + '\'' +
+                ", roomName='" + roomName + '\'' +
+                ", showId=" + showId +
+                '}';
     }
 }

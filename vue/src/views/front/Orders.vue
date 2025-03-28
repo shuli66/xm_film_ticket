@@ -7,12 +7,13 @@
         <el-option label="待取票" value="待取票" />
         <el-option label="已取票" value="已取票" />
         <el-option label="已退票" value="已退票" />
+        <el-option label="待支付" value="待支付" />
       </el-select>
       <el-button type="info" plain @click="load">查询</el-button>
       <el-button type="warning" plain style="margin: 0 10px" @click="reset">重置</el-button>
     </div>
     <div style="margin-top: 20px">
-      <el-table tooltip-effect="dark widthStyle" stripe :data="data.tableData">
+      <el-table tooltip-effect="dark" stripe :data="data.tableData">
         <el-table-column type="expand">
           <template #default="props">
             <el-descriptions class="margin-top" title="购票信息" :column="4" border>
@@ -37,12 +38,12 @@
                 <el-tag v-if="props.row.status === '待取票'" type="warning">{{ props.row.status }}</el-tag>
                 <el-tag v-if="props.row.status === '已取票'" type="success">{{ props.row.status }}</el-tag>
                 <el-tag v-if="props.row.status === '已退票'" type="danger">{{ props.row.status }}</el-tag>
+                <el-tag v-if="props.row.status === '待支付'" type="primary">{{ props.row.status }}</el-tag>
               </el-descriptions-item>
             </el-descriptions>
           </template>
         </el-table-column>
         <el-table-column prop="orderNo" label="订单号" show-overflow-tooltip />
-<!--        <el-table-column prop="userName" label="用户姓名" />-->
         <el-table-column prop="filmName" label="电影名称" show-overflow-tooltip />
         <el-table-column prop="filmImg" label="电影封面" width="90">
           <template v-slot="scope">
@@ -68,12 +69,34 @@
             <el-tag v-if="scope.row.status === '待取票'" type="warning">{{ scope.row.status }}</el-tag>
             <el-tag v-if="scope.row.status === '已取票'" type="success">{{ scope.row.status }}</el-tag>
             <el-tag v-if="scope.row.status === '已退票'" type="danger">{{ scope.row.status }}</el-tag>
+            <el-tag v-if="scope.row.status === '待支付'" type="primary">{{ scope.row.status }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="100" fixed="right">
           <template v-slot="scope">
-            <el-button type="danger" :disabled="scope.row.status !== '待取票'" @click="cancel(scope.row.id)">退票</el-button>
+            <div class="button-wrapper">
+              <!-- 显示支付按钮（仅在待支付状态下） -->
+              <el-button
+                  v-if="scope.row.status === '待支付'"
+                  type="primary"
+                  @click="pay(scope.row)"
+              >
+                支付
+              </el-button>
+
+              <!-- 显示退票按钮（仅在待取票状态下） -->
+              <el-button
+                  v-else-if="scope.row.status === '待取票'"
+                  type="danger"
+                  :disabled="scope.row.status !== '待取票'"
+                  @click="cancel(scope.row.id)"
+              >
+                退票
+              </el-button>
+            </div>
           </template>
+
+
         </el-table-column>
       </el-table>
     </div>
@@ -86,8 +109,7 @@
 <script setup>
 import { reactive } from "vue";
 import request from "@/utils/request.js";
-import {ElMessage} from "element-plus";
-import {Delete, Edit} from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 
 const data = reactive({
   user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
@@ -118,24 +140,37 @@ const load = () => {
     }
   })
 }
+
 const reset = () => {
   data.orderNo = null
   data.cinemaName = null
   data.status = null
   load()
 }
+
 const cancel = (id) => {
   request.get('/orders/cancel/' + id).then(res => {
     if (res.code === '200') {
-      ElMessage.error('退票成功')
+      ElMessage.success('退票成功')
       load()
     } else {
       ElMessage.error(res.msg)
     }
   })
 }
-load()
+
+const pay = (row) => {
+  // 打开支付页面，URL 中携带订单编号作为参数
+  window.open('http://localhost:9090/alipay/pay?orderNo=' + row.orderNo);
+}
+load();
 </script>
 
-<style>
+<style scoped>
+.card {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
 </style>

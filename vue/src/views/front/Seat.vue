@@ -159,7 +159,7 @@ const submit = () => {
     // 提交订单请求
     request.post('/orders/add', ordersData).then(res => {
       if (res.code === '200') {
-        ElMessage.success('下单成功')
+        ElMessage.success('创建订单成功！')
         // 跳转到订单页面（购票记录）
         router.push('/front/orders')
       } else {
