@@ -57,14 +57,37 @@ const router = createRouter({
   ]
 })
 
-// 🔥 **全局路由守卫，检查 token**
-router.beforeEach((to, from, next) => {
-  let user = JSON.parse(localStorage.getItem("xm-user") || '{}');
+// 防止重复提示
+let hasLoginTip = false;
 
-  if (to.meta.requiresAuth && !user.token) {
-    console.warn("未登录，跳转到 /login");
+// 全局路由守卫，检查用户登录状态
+router.beforeEach((to, from, next) => {
+  // 无需登录的页面直接放行
+  if (to.path === '/login' || to.path === '/register' || to.path === '/404') {
+    // 重置提示标记
+    hasLoginTip = false;
+    next();
+    return;
+  }
+  
+  // 检查用户登录状态
+  const userStr = localStorage.getItem("xm-user");
+  const user = userStr ? JSON.parse(userStr) : null;
+  const isLoggedIn = user && user.token;
+  
+  // 需要登录但未登录
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    if (!hasLoginTip) {
+      console.warn("需要登录权限，跳转到登录页");
+      hasLoginTip = true;
+      // 2秒后重置提示标记
+      setTimeout(() => {
+        hasLoginTip = false;
+      }, 2000);
+    }
     next('/login');
   } else {
+    // 已登录或不需要登录权限
     next();
   }
 });

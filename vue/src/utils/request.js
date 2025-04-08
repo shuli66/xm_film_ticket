@@ -6,22 +6,46 @@ import router from "@/router/index.js";
 let isTokenExpired = false;
 let isRedirecting = false;
 
+// 创建需要排除token验证的URL列表
+const excludeTokenUrls = [
+    '/login', 
+    '/register', 
+    '/user/resetPassword',
+    '/user/checkUsername',
+    '/user/checkPhone',
+    '/user/sendCode'
+];
+
 const request = axios.create({
     baseURL: import.meta.env.VITE_BASE_URL,
     timeout: 30000 // 后台接口超时时间
 });
+
 // request 拦截器
 request.interceptors.request.use(config => {
     config.headers['Content-Type'] = 'application/json;charset=utf-8';
-    // 如果是重置密码的请求，不添加token
-    if (config.url.includes('/user/resetPassword')) {
+    
+    // 检查是否为不需要token的请求
+    const isExcluded = excludeTokenUrls.some(url => config.url.includes(url));
+    if (isExcluded) {
         return config;
     }
     
-    const user = localStorage.getItem('xm-user') ? JSON.parse(localStorage.getItem('xm-user')) : null
-    if (user) {
-        config.headers['token'] = user.token
+    // 检查用户是否已登录
+    const user = localStorage.getItem('xm-user') ? JSON.parse(localStorage.getItem('xm-user')) : null;
+    
+    // 如果用户未登录且请求需要token
+    if (!user || !user.token) {
+        // 对于需要登录的请求，如果用户未登录，可以取消请求
+        if (router.currentRoute.value.meta.requiresAuth) {
+            // 取消无意义的API请求，减少后端压力
+            return Promise.reject('未登录状态，请求已取消');
+        }
+    } else {
+        // 用户已登录，添加token
+        config.headers['token'] = user.token;
     }
+    
     return config;
 }, error => {
     return Promise.reject(error);
@@ -39,31 +63,54 @@ request.interceptors.response.use(
         if (typeof res === 'string') {
             res = res ? JSON.parse(res) : res;
         }
+        
+        // 处理token验证失败
         if (res.code === '401') {
-            // 防止重复提示
+            // 防止重复提示和重复跳转
             if (!isTokenExpired && !isRedirecting) {
                 isTokenExpired = true;  // 标记为 token 已失效
                 isRedirecting = true;  // 标记为正在跳转到登录页
-                ElMessage.error("Token验证失败，请重新登录");
+                
                 // 清除本地缓存中的 token
                 localStorage.removeItem('xm-user');
-                router.push('/login');  // 跳转到登录页面
+                
+                // 只有当前不在登录页时才提示和跳转
+                if (router.currentRoute.value.path !== '/login') {
+                    ElMessage.error("登录已过期，请重新登录");
+                    router.push('/login');  // 跳转到登录页面
+                }
+                
+                // 延时恢复标志位
                 setTimeout(() => {
                     isTokenExpired = false;  // 恢复 token 失效标志
                     isRedirecting = false;   // 恢复跳转标志
                 }, 2000);  // 延时恢复，防止重复操作
             }
+            // 对于401错误，返回一个已处理的结果，避免页面组件继续处理
+            return Promise.reject('token已失效，请求已取消');
         }
+        
         return res;
     },
     error => {
-        if (error.response.status === 404) {
-            ElMessage.error('未找到请求接口');
-        } else if (error.response.status === 500) {
-            ElMessage.error('系统异常，请查看后端控制台报错');
-        } else {
-            console.error(error.message);
+        // 判断是否是主动取消的请求（未登录状态取消的请求）
+        if (axios.isCancel(error) || error === '未登录状态，请求已取消' || error === 'token已失效，请求已取消') {
+            console.log('请求被取消:', error);
+            return Promise.reject(error);
         }
+        
+        if (error.response) {
+            if (error.response.status === 404) {
+                ElMessage.error('未找到请求接口');
+            } else if (error.response.status === 500) {
+                ElMessage.error('系统异常，请查看后端控制台报错');
+            } else {
+                console.error(error.message);
+            }
+        } else {
+            console.error('网络请求错误:', error);
+        }
+        
         return Promise.reject(error);
     }
 );
