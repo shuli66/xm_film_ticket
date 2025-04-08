@@ -68,6 +68,10 @@ public class UserService {
         return dbUser;
     }
 
+    public User selectByPhone(String phone) {
+        return userMapper.selectByPhone(phone);
+    }
+
     public List<User> selectAll(User user) {
         return userMapper.selectAll(user);
     }
@@ -112,10 +116,37 @@ public class UserService {
         userMapper.updateById(dbUser);
     }
 
-    public void register(Account account) {
-        User user = new User();
-        BeanUtils.copyProperties(account, user);
-        add(user);
+    public Account register(Account account) {
+        // 检查用户名是否已存在
+        User user = userMapper.selectByUsername(account.getUsername());
+        if (user != null) {
+            throw new CustomException(ResultCodeEnum.USER_EXIST_ERROR);
+        }
+        
+        // 检查手机号是否已存在
+        User phoneUser = userMapper.selectByPhone(account.getPhone());
+        if (phoneUser != null) {
+            throw new CustomException(ResultCodeEnum.USER_EXIST_ERROR, "手机号已被注册");
+        }
+        
+        // 创建新用户
+        User newUser = new User();
+        newUser.setUsername(account.getUsername());
+        newUser.setPassword(account.getPassword());
+        newUser.setRole(account.getRole());
+        newUser.setPhone(account.getPhone());
+        newUser.setEmail(account.getEmail());
+        
+        // 设置默认值
+        newUser.setName(account.getUsername());
+        newUser.setAvatar("https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png");
+        
+        // 保存用户
+        userMapper.insert(newUser);
+        
+        // 返回用户信息
+        account.setId(newUser.getId());
+        return account;
     }
 
     public User recharge(User user) {
@@ -135,5 +166,9 @@ public class UserService {
 
     public List<Score> getAllScores() {
         return scoreMapper.getAllScores();
+    }
+
+    public User selectByUsername(String username) {
+        return userMapper.selectByUsername(username);
     }
 }

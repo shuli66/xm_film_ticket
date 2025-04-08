@@ -5,9 +5,12 @@ import com.example.entity.User;
 import com.example.service.UserService;
 import com.github.pagehelper.PageInfo;
 import jakarta.annotation.Resource;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 /**
  * 用户信息前端请求接口
@@ -88,6 +91,65 @@ public class UserController {
                              @RequestParam(defaultValue = "10") Integer pageSize) {
         PageInfo<User> pageInfo = userService.selectPage(user, pageNum, pageSize);
         return Result.success(pageInfo);
+    }
+
+    @PostMapping("/register")
+    public Result register(@RequestBody User user) {
+        userService.add(user);
+        return Result.success();
+    }
+
+    @PostMapping("/sendCode")
+    public Result sendCode(@RequestBody Map<String, String> data) {
+        String phone = data.get("phone");
+        if (StringUtils.isEmpty(phone)) {
+            return Result.error("手机号不能为空");
+        }
+        // 生成6位随机验证码
+        String code = String.format("%06d", new Random().nextInt(1000000));
+        // TODO: 这里应该调用短信服务发送验证码，这里先模拟发送
+        // 实际项目中应该将验证码存入Redis，并设置过期时间
+        return Result.success(code);
+    }
+
+    @PostMapping("/resetPassword")
+    public Result resetPassword(@RequestBody Map<String, String> data) {
+        String phone = data.get("phone");
+        String newPassword = data.get("newPassword");
+        
+        if (StringUtils.isEmpty(phone) || StringUtils.isEmpty(newPassword)) {
+            return Result.error("参数不能为空");
+        }
+        
+        // 根据手机号查找用户
+        User user = userService.selectByPhone(phone);
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        
+        // 更新密码
+        user.setPassword(newPassword);
+        userService.updateById(user);
+        
+        return Result.success();
+    }
+
+    /**
+     * 检查用户名是否存在
+     */
+    @GetMapping("/checkUsername")
+    public Result checkUsername(@RequestParam String username) {
+        User user = userService.selectByUsername(username);
+        return Result.success(user != null);
+    }
+
+    /**
+     * 检查手机号是否存在
+     */
+    @GetMapping("/checkPhone")
+    public Result checkPhone(@RequestParam String phone) {
+        User user = userService.selectByPhone(phone);
+        return Result.success(user != null);
     }
 
 }

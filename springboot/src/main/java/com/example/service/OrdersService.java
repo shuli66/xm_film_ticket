@@ -122,7 +122,11 @@ public class OrdersService {
         Orders orders = new Orders();
         orders.setCreateTime(DateUtil.today());
         List<Orders> list = ordersMapper.selectAll(orders);
-        double sum = list.stream().mapToDouble(Orders::getPrice).sum();
+        // 只统计已支付的订单金额
+        double sum = list.stream()
+                .filter(x -> "已取票".equals(x.getStatus()) && x.getCreateTime().contains(DateUtil.today()))
+                .mapToDouble(Orders::getPrice)
+                .sum();
 
         Map<String, Object> map = new HashMap<>();
         map.put("total", sum);

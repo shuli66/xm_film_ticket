@@ -72,7 +72,7 @@
             <el-tag v-if="scope.row.status === '待支付'" type="primary">{{ scope.row.status }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right">
           <template v-slot="scope">
             <div class="button-wrapper">
               <!-- 显示支付按钮（仅在待支付状态下） -->
@@ -84,19 +84,25 @@
                 支付
               </el-button>
 
+              <!-- 显示取票按钮（仅在待取票状态下） -->
+              <el-button
+                  v-else-if="scope.row.status === '待取票'"
+                  type="success"
+                  @click="showTicket(scope.row)"
+              >
+                取票
+              </el-button>
+
               <!-- 显示退票按钮（仅在待取票状态下） -->
               <el-button
                   v-else-if="scope.row.status === '待取票'"
                   type="danger"
-                  :disabled="scope.row.status !== '待取票'"
                   @click="cancel(scope.row.id)"
               >
                 退票
               </el-button>
             </div>
           </template>
-
-
         </el-table-column>
       </el-table>
     </div>
@@ -104,12 +110,54 @@
       <el-pagination @current-change="load" background layout="total, prev, pager, next" :page-size="data.pageSize" v-model:current-page="data.pageNum" :total="data.total" />
     </div>
   </div>
+
+  <!-- 取票对话框 -->
+  <el-dialog
+    v-model="data.ticketVisible"
+    title="电影票"
+    width="400px"
+    destroy-on-close
+    class="ticket-dialog"
+  >
+    <div class="ticket-content">
+      <div class="ticket-header">
+        <div class="ticket-title">{{ data.currentTicket.filmName }}</div>
+        <div class="ticket-code">取票码：{{ data.currentTicket.ticketCode }}</div>
+      </div>
+      <div class="ticket-qrcode">
+        <qrcode-vue :value="data.currentTicket.ticketCode" :size="200" level="H" />
+      </div>
+      <div class="ticket-info">
+        <div class="info-item">
+          <span class="label">影院：</span>
+          <span class="value">{{ data.currentTicket.cinemaName }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">影厅：</span>
+          <span class="value">{{ data.currentTicket.roomName }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">场次：</span>
+          <span class="value">{{ data.currentTicket.time }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">座位：</span>
+          <span class="value">
+            <el-tag v-for="seat in data.currentTicket.seatList" :key="seat.id" type="danger" style="margin-right: 5px">
+              {{ seat.row }}排{{ seat.col }}座
+            </el-tag>
+          </span>
+        </div>
+      </div>
+    </div>
+  </el-dialog>
 </template>
 
 <script setup>
 import { reactive } from "vue";
 import request from "@/utils/request.js";
 import { ElMessage } from "element-plus";
+import QrcodeVue from 'qrcode.vue';
 
 const data = reactive({
   user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
@@ -119,7 +167,16 @@ const data = reactive({
   pageNum: 1,
   pageSize: 5,
   total: 0,
-  tableData: []
+  tableData: [],
+  ticketVisible: false,
+  currentTicket: {
+    filmName: '',
+    cinemaName: '',
+    roomName: '',
+    time: '',
+    seatList: [],
+    ticketCode: ''
+  }
 })
 
 const load = () => {
@@ -163,6 +220,16 @@ const pay = (row) => {
   // 打开支付页面，URL 中携带订单编号作为参数
   window.open('http://localhost:9090/alipay/pay?orderNo=' + row.orderNo);
 }
+
+const showTicket = (row) => {
+  // 生成取票码（这里使用订单号作为取票码）
+  data.currentTicket = {
+    ...row,
+    ticketCode: row.orderNo
+  }
+  data.ticketVisible = true
+}
+
 load();
 </script>
 
@@ -172,5 +239,56 @@ load();
   border-radius: 8px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   padding: 20px;
+}
+
+.ticket-dialog {
+  .ticket-content {
+    padding: 20px;
+    text-align: center;
+  }
+
+  .ticket-header {
+    margin-bottom: 20px;
+  }
+
+  .ticket-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+  }
+
+  .ticket-code {
+    font-size: 18px;
+    color: #666;
+  }
+
+  .ticket-qrcode {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f5f7fa;
+    border-radius: 8px;
+  }
+
+  .ticket-info {
+    text-align: left;
+    margin-top: 20px;
+  }
+
+  .info-item {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .label {
+    width: 60px;
+    color: #666;
+  }
+
+  .value {
+    flex: 1;
+    color: #333;
+  }
 }
 </style>

@@ -1,88 +1,125 @@
 <template>
-  <div>
-    <div style="background: linear-gradient(to right, #46187e, #32046b, #32115b); height: 320px">
-      <div style="width: 55%; margin: 0 auto; height: 320px; display: flex; align-items: center">
-        <img :src="data.filmData.img" alt="" style="width: 280px; height: 320px">
-        <div style="flex: 1; color: white; padding: 20px 35px">
-          <div style="font-size: 26px">{{ data.filmData.title }}</div>
-          <div style="font-size: 16px">{{ data.filmData.english }}</div>
-          <div style="margin-top: 15px">
-            <span style="margin-right: 5px" v-for="item in data.filmData.types">{{ item }}</span>
+  <div class="film-detail-wrapper">
+    <!-- 电影头部信息 -->
+    <div class="film-header">
+      <div class="film-header-content">
+        <div class="film-poster">
+          <img :src="data.filmData.img" :alt="data.filmData.title">
           </div>
-          <div style="margin-top: 5px">{{ data.filmData.areaName }} / {{ data.filmData.time }}分钟</div>
-          <div style="margin-top: 5px">{{ data.filmData.start }} 中国大陆上映</div>
-          <div style="display: flex; margin-top: 55px">
-            <div style="flex: 1; margin-right: 5px">
-              <el-button v-if="data.collectFlag" @click="collect" style="width: 100%; height: 40px; font-size: 16px; background-color: #5a3686; border: none; color: white">
-                <el-icon size="24" style="color: orange"><StarFilled /></el-icon><span style="margin-left: 5px">已想看</span>
-              </el-button>
-              <el-button v-else @click="collect" style="width: 100%; height: 40px; font-size: 16px; background-color: #5a3686; border: none; color: white">
-                <el-icon size="large"><Star /></el-icon> <span style="margin-left: 5px">想看</span>
-              </el-button>
+        <div class="film-info">
+          <h1 class="film-title">{{ data.filmData.title }}</h1>
+          <div class="film-subtitle">{{ data.filmData.english }}</div>
+          <div class="film-meta">
+            <div class="film-types">
+              <span v-for="item in data.filmData.types" :key="item" class="type-tag">{{ item }}</span>
             </div>
-            <div style="flex: 1; margin-left: 5px">
-              <el-button v-if="data.scoreFlag" style="width: 100%; height: 40px; font-size: 16px; background-color: #5a3686; border: none; color: white" @click="">
-                <el-icon size="24" style="color: orange"><Comment /></el-icon> <span style="margin-left: 5px">已评分</span>
-              </el-button>
-              <el-button v-else style="width: 100%; height: 40px; font-size: 16px; background-color: #5a3686; border: none; color: white" @click="scoreInit" v-if="data.filmData.status === '已上映'">
-                <el-icon size="large"><ChatDotSquare /></el-icon> <span style="margin-left: 5px">评分</span>
-              </el-button>
+            <div class="film-details">
+              <span>{{ data.filmData.areaName }}</span>
+              <span class="separator">|</span>
+              <span>{{ data.filmData.time }}分钟</span>
+              <span class="separator">|</span>
+              <span>{{ data.filmData.start }} 中国大陆上映</span>
             </div>
           </div>
-          <el-button style="background-color: #ef4238; border: none; color: white; width: 100%; margin-top: 10px; height: 40px; font-size: 16px" @click="$router.push('/front/filmCinema?id=' + data.filmData.id)">特惠购票</el-button>
+          <div class="film-actions">
+            <div class="action-group">
+              <el-button 
+                :class="{'action-btn': true, 'active': data.collectFlag}"
+                @click="collect">
+                <el-icon :size="24">
+                  <component :is="data.collectFlag ? 'StarFilled' : 'Star'" />
+                </el-icon>
+                <span>{{ data.collectFlag ? '已想看' : '想看' }}</span>
+              </el-button>
+              <el-button 
+                :class="{'action-btn': true, 'active': data.scoreFlag}"
+                @click="data.filmData.status === '已上映' ? scoreInit() : null"
+                :disabled="data.filmData.status !== '已上映'">
+                <el-icon :size="24">
+                  <component :is="data.scoreFlag ? 'Comment' : 'ChatDotSquare'" />
+                </el-icon>
+                <span>{{ data.scoreFlag ? '已评分' : '评分' }}</span>
+              </el-button>
+            </div>
+            <el-button class="buy-ticket-btn" @click="$router.push('/front/filmCinema?id=' + data.filmData.id)">
+              特惠购票
+              </el-button>
+            </div>
+          </div>
+        <div class="film-stats">
+          <div class="stat-item">
+            <div class="stat-label">影片口碑</div>
+            <div class="stat-content">
+              <div class="score-display">
+                <span class="score-value">{{ data.filmData.score }}</span>
+                <span class="score-label">分</span>
         </div>
-        <div style="width: 250px; color: white">
-          <div style="font-size: 12px">影片口碑</div>
-          <div style="display: flex; align-items: center">
-            <div style="width: 100px; font-weight: bold; font-size: 16px"><span style="font-size: 30px">{{ data.filmData.score }}</span> 分</div>
-            <div style="flex: 1">
-              <div><el-rate v-model="data.halfScore" disabled/></div>
-              <div>{{ data.scoreTime }}人评分</div>
+              <div class="score-details">
+                <el-rate v-model="data.halfScore" disabled />
+                <div class="score-count">{{ data.scoreTime }}人评分</div>
             </div>
           </div>
-          <div style="margin-top: 10px; font-size: 12px">累计票房</div>
-          <div style="margin-top: 5px; font-weight: bold; font-size: 16px"><span style="font-size: 25px">{{ (data.filmData.total * 1).toFixed(2) }}</span> 元</div>
+        </div>
+          <div class="stat-item">
+            <div class="stat-label">累计票房</div>
+            <div class="stat-content">
+              <div class="box-office">
+                <span class="box-office-value">{{ (data.filmData.total * 1).toFixed(2) }}</span>
+                <span class="box-office-label">元</span>
+      </div>
+    </div>
+          </div>
         </div>
       </div>
     </div>
-    <div style="width: 55%; margin: 50px auto; display: flex">
-      <div style="flex: 1">
-        <div style="font-size: 20px; border-left: 3px solid red; padding-left: 5px; line-height: 30px">剧情简介</div>
-        <div style="margin-top: 10px; padding: 10px; line-height: 20px; color: #333333; text-align: justify">{{ data.filmData.content }}</div>
-        <div style="font-size: 20px; border-left: 3px solid red; padding-left: 5px; line-height: 30px; margin-top: 40px">演职人员</div>
-        <div style="margin-top: 20px" v-if="data.actorData && data.actorData.length > 0">
+
+    <!-- 电影详情内容 -->
+    <div class="film-content">
+      <div class="main-content">
+        <!-- 剧情简介 -->
+        <div class="content-section">
+          <h2 class="section-title">剧情简介</h2>
+          <div class="section-content">{{ data.filmData.content }}</div>
+        </div>
+
+        <!-- 演职人员 -->
+        <div class="content-section">
+          <h2 class="section-title">演职人员</h2>
+          <div v-if="data.actorData && data.actorData.length > 0" class="actor-section">
           <el-row :gutter="10">
-            <el-col :span="5" v-for="item in data.actorData.filter(v => v.role === '导演')" style="margin-bottom: 20px">
-              <div style="text-align: center; font-size: 16px">{{ item.role }}</div>
-              <img :src="item.avatar" alt="" style="width: 100%; height: 110px; border-radius: 50%; margin: 10px 0">
-              <div style="text-align: center">{{ item.name }}</div>
+              <el-col :span="5" v-for="item in data.actorData.filter(v => v.role === '导演')" :key="item.id" class="actor-item">
+                <div class="actor-role">{{ item.role }}</div>
+                <img :src="item.avatar" :alt="item.name" class="actor-avatar">
+                <div class="actor-name">{{ item.name }}</div>
             </el-col>
-            <el-col :span="5" v-for="item in data.actorData.filter(v => v.role === '编剧')" style="margin-bottom: 20px">
-              <div style="text-align: center; font-size: 16px">{{ item.role }}</div>
-              <img :src="item.avatar" alt="" style="width: 100%; height: 110px; border-radius: 50%; margin: 10px 0">
-              <div style="text-align: center">{{ item.name }}</div>
+              <el-col :span="5" v-for="item in data.actorData.filter(v => v.role === '编剧')" :key="item.id" class="actor-item">
+                <div class="actor-role">{{ item.role }}</div>
+                <img :src="item.avatar" :alt="item.name" class="actor-avatar">
+                <div class="actor-name">{{ item.name }}</div>
             </el-col>
-            <el-col :span="5" v-for="item in data.actorData.filter(v => v.role === '主演')" style="margin-bottom: 20px">
-              <div style="text-align: center; font-size: 16px">{{ item.role }}</div>
-              <img :src="item.avatar" alt="" style="width: 100%; height: 110px; border-radius: 50%; margin: 10px 0">
-              <div style="text-align: center">{{ item.name }}</div>
+              <el-col :span="5" v-for="item in data.actorData.filter(v => v.role === '主演')" :key="item.id" class="actor-item">
+                <div class="actor-role">{{ item.role }}</div>
+                <img :src="item.avatar" :alt="item.name" class="actor-avatar">
+                <div class="actor-name">{{ item.name }}</div>
             </el-col>
-            <el-col :span="5" v-for="item in data.actorData.filter(v => v.role === '演员')" style="margin-bottom: 20px">
-              <div style="text-align: center; font-size: 16px">{{ item.role }}</div>
-              <img :src="item.avatar" alt="" style="width: 100%; height: 110px; border-radius: 50%; margin: 10px 0">
-              <div style="text-align: center">{{ item.name }}</div>
+              <el-col :span="5" v-for="item in data.actorData.filter(v => v.role === '演员')" :key="item.id" class="actor-item">
+                <div class="actor-role">{{ item.role }}</div>
+                <img :src="item.avatar" :alt="item.name" class="actor-avatar">
+                <div class="actor-name">{{ item.name }}</div>
             </el-col>
           </el-row>
         </div>
-        <div style="margin-top: 20px; padding-left: 20px" v-else>
-          管理员暂未录入演职人员信息
+          <div class="empty-state" v-else>管理员暂未录入演职人员信息</div>
         </div>
-        <div style="font-size: 20px; border-left: 3px solid red; padding-left: 5px; line-height: 30px; margin-top: 40px">出品信息</div>
-        <div style="margin-top: 20px; display: flex">
-          <div style="flex: 1; border: 1px solid #eeebeb; display: flex; align-items: center; padding: 30px">
-            <el-icon size="22" style="width: 60px"><VideoCamera /></el-icon>
-            <div style="flex: 1; width: 0">
-              <div style="font-size: 18px">出品发行</div>
+
+        <!-- 出品信息 -->
+        <div class="content-section">
+          <h2 class="section-title">出品信息</h2>
+          <div class="info-grid">
+            <div class="info-item">
+              <el-icon class="info-icon"><VideoCamera /></el-icon>
+              <div class="info-content">
+                <div class="info-title">出品发行</div>
               <el-popover
                   placement="top-start"
                   title="出品发行"
@@ -91,120 +128,130 @@
                   :content="data.filmData.employ"
               >
                 <template #reference>
-                  <div style="font-size: 16px; margin-top: 5px" class="line1">{{ data.filmData.employ }}</div>
+                    <div class="info-text line1">{{ data.filmData.employ }}</div>
                 </template>
               </el-popover>
             </div>
           </div>
-          <div style="flex: 1; border: 1px solid #eeebeb; display: flex; align-items: center; padding: 30px">
-            <el-icon size="22" style="width: 60px"><VideoPlay /></el-icon>
-            <div style="flex: 1">
-              <div style="font-size: 18px">技术参考</div>
-              <div style="font-size: 16px; margin-top: 5px">{{ data.filmData.time }} 分钟</div>
+            <div class="info-item">
+              <el-icon class="info-icon"><VideoPlay /></el-icon>
+              <div class="info-content">
+                <div class="info-title">技术参考</div>
+                <div class="info-text">{{ data.filmData.time }} 分钟</div>
             </div>
           </div>
         </div>
-        <div style="font-size: 20px; border-left: 3px solid red; padding-left: 5px; line-height: 30px; margin-top: 40px">票房</div>
-        <div style="margin-top: 20px; display: flex; background-color: #f8f8f8; padding: 30px 40px">
-          <div style="flex: 1">
-            <div style="font-size: 26px; text-align: center; color: red">{{ data.priceRanking }}</div>
-            <div style="font-size: 20px; text-align: center">票房排名</div>
           </div>
-          <div style="flex: 1">
-            <div style="font-size: 26px; text-align: center; color: red">{{ (data.todayPrice * 1).toFixed(2) }}</div>
-            <div style="font-size: 20px; text-align: center">今日票房（元）</div>
+
+        <!-- 票房信息 -->
+        <div class="content-section">
+          <h2 class="section-title">票房</h2>
+          <div class="box-office-grid">
+            <div class="box-office-item">
+              <div class="box-office-value">{{ data.priceRanking }}</div>
+              <div class="box-office-label">票房排名</div>
           </div>
-          <div style="flex: 1">
-            <div style="font-size: 26px; text-align: center; color: red">{{ (data.filmData.total * 1).toFixed(2) }}</div>
-            <div style="font-size: 20px; text-align: center">总票房（元）</div>
+            <div class="box-office-item">
+              <div class="box-office-value">{{ (data.todayPrice * 1).toFixed(2) }}</div>
+              <div class="box-office-label">今日票房（元）</div>
+          </div>
+            <div class="box-office-item">
+              <div class="box-office-value">{{ (data.filmData.total * 1).toFixed(2) }}</div>
+              <div class="box-office-label">总票房（元）</div>
+        </div>
+      </div>
+          </div>
+
+        <!-- 用户评论 -->
+        <div class="content-section">
+          <h2 class="section-title">用户评论</h2>
+          <div class="comments-section">
+            <div v-if="data.commentData.length > 0" class="comments-list">
+              <div v-for="(comment, index) in data.commentData" :key="index" class="comment-item">
+                <div class="comment-header">
+                  <img :src="comment.userAvatar" :alt="comment.userName" class="comment-avatar">
+                  <div class="comment-user">
+                    <span class="user-name">{{ comment.userName }}</span>
+                    <span class="comment-time">{{ formatTime(comment.createTime) }}</span>
+                  </div>
+                  <div v-if="comment.userId === data.user.id" class="comment-actions">
+                    <el-button type="text" @click="deleteComment(comment.id)">
+                      <el-icon><DeleteFilled /></el-icon>
+                      <span>删除</span>
+                    </el-button>
+                  </div>
+                </div>
+                <div class="comment-content">{{ comment.commentText }}</div>
+              </div>
+        </div>
+            <div v-else class="empty-state">暂无评论</div>
+
+            <div class="comment-form">
+          <el-input
+              v-model="data.newComment"
+              type="textarea"
+                :rows="4"
+                placeholder="请输入评论"
+              :disabled="data.isCommenting"
+              />
+          <el-button
+              type="primary"
+              :loading="data.isCommenting"
+              @click="submitComment"
+                class="submit-comment-btn"
+              >
+                提交评论
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
-      <div style="width: 360px; margin-left: 30px">
-        <div style="font-size: 20px; border-left: 3px solid red; padding-left: 5px; line-height: 30px; margin-bottom: 20px">预告视频</div>
-        <div style="display: flex; margin-bottom: 20px" v-if="data.videoData && data.videoData.length > 0" v-for="item in data.videoData">
-          <img :src="item.img" alt="" style="width: 120px; height: 70px; border-radius: 5px; cursor: pointer; border: 1px solid #cccccc" @click="viewInit(item)">
-          <div style="flex: 1; margin-left: 20px">
-            <div style="line-height: 20px; height: 40px; font-weight: bold" class="line2">{{ item.name }}</div>
-            <div style="line-height: 20px; margin-top: 10px">{{ item.time }}</div>
+
+      <!-- 预告视频 -->
+      <div class="sidebar">
+        <h2 class="section-title">预告视频</h2>
+        <div class="trailer-list" v-if="data.videoData && data.videoData.length > 0">
+          <div v-for="item in data.videoData" :key="item.id" class="trailer-item" @click="viewInit(item)">
+            <div class="trailer-thumbnail">
+              <img :src="item.img" :alt="item.name">
+              <div class="play-icon">
+                <el-icon><VideoPlay /></el-icon>
+              </div>
+            </div>
+            <div class="trailer-info">
+              <div class="trailer-title line2">{{ item.name }}</div>
+              <div class="trailer-time">{{ item.time }}</div>
+            </div>
           </div>
         </div>
-        <div style="margin-top: 20px; padding-left: 20px" v-else>
-          暂无预告片
-        </div>
+        <div class="empty-state" v-else>暂无预告片</div>
       </div>
     </div>
-    <el-dialog title="预告视频" v-model="data.formVisible" width="50%" destroy-on-close>
-      <div style="padding: 30px">
-        <div style="font-size: 26px; font-weight: bold; text-align: center">{{ data.filmData.title }} - 预告片</div>
-        <div style="margin-top: 20px; color: #666666; font-size: 16px">{{ data.form.name }}</div>
-        <div style="margin-top: 20px">
-          <video :src="data.form.video" controls style="width: 100%"></video>
-        </div>
+
+    <!-- 视频播放对话框 -->
+    <el-dialog
+      v-model="data.formVisible"
+      title="预告视频"
+      width="50%"
+      destroy-on-close
+      class="video-dialog"
+    >
+      <div class="video-content">
+        <h3 class="video-title">{{ data.filmData.title }} - 预告片</h3>
+        <div class="video-name">{{ data.form.name }}</div>
+        <video :src="data.form.video" controls class="video-player"></video>
       </div>
     </el-dialog>
 
-
-      <!-- 电影评论区域 -->
-      <div style="width: 55%; margin: 50px auto; display: flex; flex-direction: column;">
-        <div style="font-size: 20px; border-left: 3px solid red; padding-left: 5px; line-height: 30px">用户评论</div>
-
-        <!-- 评论列表 -->
-        <div v-if="data.commentData.length > 0" style="margin-top: 20px">
-          <el-row :gutter="20">
-            <el-col :span="24" v-for="(comment, index) in data.commentData" :key="index">
-              <div style="border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 10px">
-                <div style="display: flex; align-items: center;">
-                  <img :src="comment.userAvatar" alt="用户头像" class="comment-avatar" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;">
-                  <div style="font-weight: bold">{{ '用户:  ' + comment.userName }} <span>{{ comment.createTime ? comment.createTime : '暂无时间' }}</span></div>
-
-                  <!-- 判断评论是否属于当前用户，只有当前用户才能删除 -->
-                  <div v-if="comment.userId === data.user.id" style="margin-left: auto;">
-                    <el-button
-                        type="text"
-                        size="mini"
-                        @click="deleteComment(comment.id)"
-                        style="color: #f56c6c; padding: 0;">
-                      <el-icon size="small">
-                        <DeleteFilled />
-                      </el-icon>
-                      删除
-                    </el-button>
-
-                  </div>
-                </div>
-                <div>{{ comment.commentText }}</div>
-              </div>
-            </el-col>
-          </el-row>
-        </div>
-
-
-        <!-- 无评论时显示 -->
-        <div v-else style="margin-top: 20px">暂无评论</div>
-
-
-        <!-- 添加评论输入框 -->
-        <div style="margin-top: 20px">
-          <el-input
-              v-model="data.newComment"
-              placeholder="请输入评论"
-              type="textarea"
-              rows="4"
-              :disabled="data.isCommenting"
-          ></el-input>
-          <el-button
-              type="primary"
-              style="margin-top: 10px"
-              :loading="data.isCommenting"
-              @click="submitComment"
-          >提交评论</el-button>
-        </div>
-      </div>
-
-
-    <el-dialog title="电影评分" v-model="data.scoreVisible" width="40%" destroy-on-close>
-      <el-form ref="form" label-width="70px" style="padding: 20px">
+    <!-- 评分对话框 -->
+    <el-dialog
+      v-model="data.scoreVisible"
+      title="电影评分"
+      width="40%"
+      destroy-on-close
+      class="score-dialog"
+    >
+      <el-form ref="form" label-width="70px">
         <el-form-item prop="score" label="电影评分">
           <el-rate
               v-model="data.score"
@@ -230,6 +277,18 @@ import {reactive, ref} from "vue";
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
 import router from "@/router/index.js";
+
+// 添加时间格式化函数
+const formatTime = (time) => {
+  if (!time) return '暂无时间';
+  const date = new Date(time);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+};
 
 const data = reactive({
   user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
@@ -490,46 +549,746 @@ loadCollect()
 </script>
 
 <style scoped>
-.line1 {
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
+.film-detail-wrapper {
+  min-height: 100vh;
+  background: #f5f7fa;
 }
-.line2 {
-  word-break: break-all;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2; /* 超出几行省略 */
+
+/* 头部样式 */
+.film-header {
+  background: linear-gradient(135deg, #46187e 0%, #32046b 50%, #32115b 100%);
+  padding: 40px 0;
+  position: relative;
   overflow: hidden;
 }
-.el-col-5 {
-  width: 20%;
-  max-width: 20%;
+
+.film-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none"/><circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.1)" stroke-width="1" fill="none"/></svg>') repeat;
+  opacity: 0.1;
+  pointer-events: none;
 }
-.comment-avatar {
-  width: 30px;
-  height: 30px;
+
+.film-header-content {
+  width: 75%;
+  margin: 0 auto;
+  display: flex;
+  gap: 40px;
+  position: relative;
+  z-index: 1;
+}
+
+.film-poster {
+  width: 240px;
+  height: 320px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+  position: relative;
+}
+
+.film-poster:hover {
+  transform: translateY(-5px);
+}
+
+.film-poster::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 100%);
+  pointer-events: none;
+}
+
+.film-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.film-poster:hover img {
+  transform: scale(1.05);
+}
+
+.film-info {
+  flex: 1;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.film-title {
+  font-size: 32px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.film-subtitle {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 20px;
+}
+
+.film-meta {
+  margin-bottom: 30px;
+}
+
+.film-types {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.type-tag {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.type-tag:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.film-details {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.separator {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.film-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: auto;
+}
+
+.action-group {
+  display: flex;
+  gap: 15px;
+}
+
+.action-btn {
+  flex: 1;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.action-btn.active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.action-btn .el-icon {
+  transition: transform 0.3s ease;
+}
+
+.action-btn:hover .el-icon {
+  transform: scale(1.1);
+}
+
+.buy-ticket-btn {
+  height: 40px;
+  background: #ef4238;
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.buy-ticket-btn:hover {
+  background: #d63a31;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 66, 56, 0.3);
+}
+
+.film-stats {
+  width: 220px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stat-item {
+  margin-bottom: 30px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.stat-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 10px;
+}
+
+.score-display {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.score-value {
+  font-size: 36px;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.score-label {
+  font-size: 16px;
+  margin-left: 4px;
+}
+
+.score-details {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.score-count {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.box-office {
+  display: flex;
+  align-items: baseline;
+}
+
+.box-office-value {
+  font-size: 28px;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.box-office-label {
+  font-size: 16px;
+  margin-left: 4px;
+}
+
+/* 内容区域样式 */
+.film-content {
+  width: 75%;
+  margin: 40px auto;
+  display: flex;
+  gap: 40px;
+}
+
+.main-content {
+  flex: 1;
+}
+
+.sidebar {
+  width: 320px;
+}
+
+.content-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.content-section:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.section-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+  padding-left: 12px;
+  border-left: 4px solid #ef4238;
+  position: relative;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  width: 40px;
+  height: 2px;
+  background: #ef4238;
+  transition: width 0.3s ease;
+}
+
+.content-section:hover .section-title::after {
+  width: 60px;
+}
+
+.section-content {
+  color: #333;
+  line-height: 1.8;
+  text-align: justify;
+}
+
+/* 演职人员样式 */
+.actor-section {
+  margin-top: 20px;
+}
+
+.actor-item {
+  margin-bottom: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.actor-item:hover {
+  background: #f8f9fa;
+  transform: translateY(-2px);
+}
+
+.actor-role {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.actor-avatar {
+  width: 100%;
+  height: 110px;
   border-radius: 50%;
+  margin: 10px 0;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.actor-item:hover .actor-avatar {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transform: scale(1.05);
+}
+
+.actor-name {
+  font-size: 14px;
+  color: #333;
+  transition: color 0.3s ease;
+}
+
+.actor-item:hover .actor-name {
+  color: #ef4238;
+}
+
+/* 出品信息样式 */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.info-item:hover {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.info-icon {
+  font-size: 24px;
+  color: #2d98f3;
+  margin-right: 15px;
+  transition: transform 0.3s ease;
+}
+
+.info-item:hover .info-icon {
+  transform: scale(1.1);
+}
+
+.info-content {
+  flex: 1;
+}
+
+.info-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.info-text {
+  font-size: 14px;
+  color: #666;
+}
+
+/* 票房信息样式 */
+.box-office-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  background: #f8f9fa;
+  padding: 30px;
+  border-radius: 8px;
+}
+
+.box-office-item {
+  text-align: center;
+  transition: all 0.3s ease;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.box-office-item:hover {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.box-office-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #ef4238;
+  margin-bottom: 10px;
+  transition: color 0.3s ease;
+}
+
+.box-office-item:hover .box-office-value {
+  color: #d63a31;
+}
+
+.box-office-label {
+  font-size: 16px;
+  color: #666;
+}
+
+/* 评论样式 */
+.comments-section {
+  margin-top: 20px;
+}
+
+.comment-item {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  transition: all 0.3s ease;
+}
+
+.comment-item:hover {
+  background: #f8f9fa;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.comment-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 12px;
+  transition: transform 0.3s ease;
+}
+
+.comment-item:hover .comment-avatar {
+  transform: scale(1.1);
+}
+
+.comment-user {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #333;
   margin-right: 10px;
 }
 
-.comment-box {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
+.comment-time {
+  font-size: 12px;
+  color: #999;
 }
 
 .comment-content {
+  color: #333;
+  line-height: 1.6;
+}
+
+.comment-form {
+  margin-top: 30px;
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.comment-form:hover {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.submit-comment-btn {
+  margin-top: 15px;
+  transition: all 0.3s ease;
+}
+
+.submit-comment-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 预告视频样式 */
+.trailer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.trailer-item {
+  display: flex;
+  gap: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.trailer-item:hover {
+  transform: translateX(5px);
+  background: #f8f9fa;
+}
+
+.trailer-thumbnail {
+  position: relative;
+  width: 120px;
+  height: 70px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.trailer-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.trailer-item:hover .trailer-thumbnail img {
+  transform: scale(1.05);
+}
+
+.play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30px;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.trailer-item:hover .play-icon {
+  background: rgba(239, 66, 56, 0.8);
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.trailer-info {
   flex: 1;
-  margin-left: 10px;
 }
 
-.comment-actions {
-  margin-left: auto;
-  text-align: right;
+.trailer-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+  transition: color 0.3s ease;
 }
 
+.trailer-item:hover .trailer-title {
+  color: #ef4238;
+}
 
+.trailer-time {
+  font-size: 12px;
+  color: #999;
+}
+
+/* 对话框样式 */
+.video-dialog {
+  .video-content {
+    padding: 20px;
+}
+
+  .video-title {
+    font-size: 24px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+  }
+
+  .video-name {
+    color: #666;
+    margin-bottom: 20px;
+  }
+
+  .video-player {
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.score-dialog {
+  .el-rate {
+    font-size: 24px;
+  }
+}
+
+/* 通用样式 */
+.empty-state {
+  color: #999;
+  text-align: center;
+  padding: 30px 0;
+  font-size: 14px;
+}
+
+.line1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 响应式调整 */
+@media (max-width: 1400px) {
+  .film-header-content,
+  .film-content {
+    width: 85%;
+  }
+}
+
+@media (max-width: 1200px) {
+  .film-header-content,
+  .film-content {
+    width: 90%;
+  }
+}
+
+@media (max-width: 992px) {
+  .film-header-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 95%;
+  }
+
+  .film-info {
+    margin-top: 20px;
+  }
+
+  .film-types {
+    justify-content: center;
+  }
+
+  .film-details {
+    justify-content: center;
+  }
+
+  .film-actions {
+    margin-top: 20px;
+  }
+
+  .film-content {
+    flex-direction: column;
+    width: 95%;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .film-header-content,
+  .film-content {
+    width: 100%;
+    padding: 0 20px;
+  }
+
+  .film-poster {
+    width: 200px;
+    height: 280px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .box-office-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

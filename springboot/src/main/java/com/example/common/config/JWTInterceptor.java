@@ -34,6 +34,20 @@ public class JWTInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // 获取请求路径
+        String requestURI = request.getRequestURI();
+        
+        // 排除不需要token验证的接口
+        if (requestURI.contains("/login") || 
+            requestURI.contains("/register") || 
+            requestURI.contains("/user/resetPassword") ||
+            requestURI.contains("/user/checkUsername") ||
+            requestURI.contains("/user/checkPhone")
+
+        ) {
+            return true;
+        }
+
         // 1. 从http请求标头里面拿到token
         String token = request.getHeader(Constants.TOKEN);
         if (ObjectUtil.isNull(token)) {
@@ -64,7 +78,7 @@ public class JWTInterceptor implements HandlerInterceptor {
         } catch (Exception e) {
             throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR);
         }
-        // 根据token里面携带的用户ID去对应的角色表查询  没查到 所有报了这个“用户不存在”错误
+        // 根据token里面携带的用户ID去对应的角色表查询  没查到 所有报了这个"用户不存在"错误
         if (ObjectUtil.isNull(account)) {
             // 用户不存在
             throw new CustomException(ResultCodeEnum.TOKEN_CHECK_ERROR);

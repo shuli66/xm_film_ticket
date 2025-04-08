@@ -22,4 +22,6 @@ public interface UserMapper {
 
     List<User> selectAll(User user);
 
+    @Select("select * from `user` where phone = #{phone}")
+    User selectByPhone(String phone);
 }

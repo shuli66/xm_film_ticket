@@ -13,8 +13,15 @@ const request = axios.create({
 // request 拦截器
 request.interceptors.request.use(config => {
     config.headers['Content-Type'] = 'application/json;charset=utf-8';
-    let user = JSON.parse(localStorage.getItem("xm-user") || '{}')
-    config.headers['token'] = user.token || '';
+    // 如果是重置密码的请求，不添加token
+    if (config.url.includes('/user/resetPassword')) {
+        return config;
+    }
+    
+    const user = localStorage.getItem('xm-user') ? JSON.parse(localStorage.getItem('xm-user')) : null
+    if (user) {
+        config.headers['token'] = user.token
+    }
     return config;
 }, error => {
     return Promise.reject(error);
