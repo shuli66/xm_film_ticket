@@ -1,6 +1,7 @@
 package com.example.controller;
 
 import com.example.common.Result;
+import com.example.common.enums.ResultCodeEnum;
 import com.example.entity.Comment;
 import com.example.entity.User;
 import com.example.service.CommentService;
@@ -66,7 +67,7 @@ public class CommentController {
         Comment comment = commentService.getCommentById(commentId);
 
         if (comment == null) {
-            return Result.error("未找到该评论");
+            return Result.error(ResultCodeEnum.DATA_ERROR.code, "未找到该评论");
         }
 
         Integer userId = comment.getUserId();
@@ -118,7 +119,7 @@ public class CommentController {
         if (success) {
             return Result.success("评论删除成功");
         } else {
-            return Result.error("评论删除失败或没有权限");
+            return Result.error(ResultCodeEnum.FAIL.code, "评论删除失败或没有权限");
         }
     }
     /**
@@ -132,7 +133,7 @@ public class CommentController {
         if (success) {
             return Result.success("评论删除成功");
         } else {
-            return Result.error("评论删除失败");
+            return Result.error(ResultCodeEnum.FAIL.code, "评论删除失败");
         }
     }
 
@@ -144,7 +145,7 @@ public class CommentController {
     public Result updateComment(@RequestBody Comment comment) {
         // 校验评论是否存在及用户权限
         if (comment.getId() == null || comment.getUserId() == null || comment.getCommentText() == null) {
-            return Result.error("评论内容不能为空");
+            return Result.error(ResultCodeEnum.PARAM_ERROR.code, "评论内容不能为空");
         }
 
         // 设置修改时间
@@ -155,7 +156,7 @@ public class CommentController {
         if (success) {
             return Result.success("评论更新成功");
         } else {
-            return Result.error("评论更新失败或没有权限");
+            return Result.error(ResultCodeEnum.FAIL.code, "评论更新失败或没有权限");
         }
     }
 
@@ -169,7 +170,7 @@ public class CommentController {
         if (success) {
             return Result.success("批量删除成功");
         } else {
-            return Result.error("批量删除失败");
+            return Result.error(ResultCodeEnum.FAIL.code, "批量删除失败");
         }
     }
 

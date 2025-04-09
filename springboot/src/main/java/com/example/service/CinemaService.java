@@ -103,8 +103,31 @@ public class CinemaService {
     }
 
     public void register(Account account) {
+        // 检查用户名是否已存在
+        Cinema dbCinema = cinemaMapper.selectByUsername(account.getUsername());
+        if (ObjectUtil.isNotNull(dbCinema)) {
+            throw new CustomException(ResultCodeEnum.USER_EXIST_ERROR);
+        }
+        
+        // 创建影院对象并复制基本属性
         Cinema cinema = new Cinema();
         BeanUtils.copyProperties(account, cinema);
-        add(cinema);
+        
+        // 设置必要的默认值
+        if (cinema.getName() == null || cinema.getName().isEmpty()) {
+            cinema.setName(cinema.getUsername());
+        }
+        
+        // 设置角色和状态
+        cinema.setRole(RoleEnum.CINEMA.name());
+        cinema.setStatus("待审核");
+        
+        // 设置默认头像
+        if (cinema.getAvatar() == null || cinema.getAvatar().isEmpty()) {
+            cinema.setAvatar("https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png");
+        }
+        
+        // 保存影院信息
+        cinemaMapper.insert(cinema);
     }
 }

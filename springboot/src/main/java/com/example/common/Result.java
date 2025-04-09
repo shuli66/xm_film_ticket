@@ -1,32 +1,31 @@
 package com.example.common;
 
-public class Result {
+import lombok.Data;
 
+@Data
+public class Result<T> {
     private String code;
     private String msg;
-    private Object data;
+    private T data;
 
     public Result() {
+    }
 
+    public Result(T data) {
+        this.data = data;
     }
 
     public static Result success() {
-        Result result = new Result();
+        Result result = new Result<>();
         result.setCode("200");
-        result.setMsg("请求成功");
+        result.setMsg("成功");
         return result;
     }
 
-    public static Result success(Object data) {
-        Result result = success();
-        result.setData(data);
-        return result;
-    }
-
-    public static Result error() {
-        Result result = new Result();
-        result.setCode("500");
-        result.setMsg("系统异常");
+    public static <T> Result<T> success(T data) {
+        Result<T> result = new Result<>(data);
+        result.setCode("200");
+        result.setMsg("成功");
         return result;
     }
 
@@ -37,34 +36,20 @@ public class Result {
         return result;
     }
 
-    public static Result error(String msg) {
+    public static Result fail() {
         Result result = new Result();
         result.setCode("500");
-        result.setMsg(msg);
+        result.setMsg("系统错误");
         return result;
     }
 
-    public String getCode() {
-        return code;
+    public Result message(String msg) {
+        this.setMsg(msg);
+        return this;
     }
 
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getMsg() {
-        return msg;
-    }
-
-    public void setMsg(String msg) {
-        this.msg = msg;
-    }
-
-    public Object getData() {
-        return data;
-    }
-
-    public void setData(Object data) {
-        this.data = data;
+    public Result code(String code) {
+        this.setCode(code);
+        return this;
     }
 }

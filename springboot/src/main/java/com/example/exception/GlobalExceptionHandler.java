@@ -1,28 +1,61 @@
 package com.example.exception;
 
-import cn.hutool.log.Log;
-import cn.hutool.log.LogFactory;
 import com.example.common.Result;
-import org.springframework.web.bind.annotation.ControllerAdvice;
+import com.example.common.enums.ResultCodeEnum;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-@ControllerAdvice("com.example.controller")
+@Slf4j
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final Log log = LogFactory.get();
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Result handleValidException(MethodArgumentNotValidException e) {
+        BindingResult bindingResult = e.getBindingResult();
+        List<FieldError> fieldErrors = bindingResult.getFieldErrors();
+        String message = fieldErrors.stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.joining(", "));
+        
+        log.error("参数校验异常：{}", message);
+        return Result.error(ResultCodeEnum.PARAM_ERROR.code, message);
+    }
 
-    @ExceptionHandler(Exception.class)
-    @ResponseBody // 返回json串
-    public Result error(Exception e) {
-        log.error("异常信息：", e);
-        return Result.error();
+    @ExceptionHandler(ConstraintViolationException.class)
+    public Result handleValidException(ConstraintViolationException e) {
+        Set<ConstraintViolation<?>> violations = e.getConstraintViolations();
+        String message = violations.stream()
+                .map(ConstraintViolation::getMessage)
+                .collect(Collectors.joining(", "));
+        
+        log.error("参数校验异常：{}", message);
+        return Result.error(ResultCodeEnum.PARAM_ERROR.code, message);
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public Result handleBusinessException(BusinessException e) {
+        log.error("业务异常：{}", e.getMessage());
+        return Result.error(e.getCode(), e.getMessage());
     }
 
     @ExceptionHandler(CustomException.class)
-    @ResponseBody // 返回json串
-    public Result error(CustomException e) {
-//        log.error("异常信息：", e);
-        return Result.error(e.getCode(), e.getMsg());
+    public Result handleTokenException(CustomException e) {
+        log.error("Token异常：{}", e.getMessage());
+        return Result.error(e.getCode(), e.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public Result handleException(Exception e) {
+        log.error("系统异常：", e);
+        return Result.error(ResultCodeEnum.SERVICE_ERROR.code, "系统异常，请联系管理员");
     }
 }

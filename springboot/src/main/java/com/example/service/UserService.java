@@ -123,12 +123,6 @@ public class UserService {
             throw new CustomException(ResultCodeEnum.USER_EXIST_ERROR);
         }
         
-        // 检查手机号是否已存在
-        User phoneUser = userMapper.selectByPhone(account.getPhone());
-        if (phoneUser != null) {
-            throw new CustomException(ResultCodeEnum.USER_EXIST_ERROR, "手机号已被注册");
-        }
-        
         // 创建新用户
         User newUser = new User();
         newUser.setUsername(account.getUsername());
@@ -137,8 +131,14 @@ public class UserService {
         newUser.setPhone(account.getPhone());
         newUser.setEmail(account.getEmail());
         
-        // 设置默认值
-        newUser.setName(account.getUsername());
+        // 设置姓名/昵称
+        if (account.getName() != null && !account.getName().isEmpty()) {
+            newUser.setName(account.getName());
+        } else {
+            // 如果前端没有传递name，才使用username作为默认值
+            newUser.setName(account.getUsername());
+        }
+        
         newUser.setAvatar("https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png");
         
         // 保存用户
