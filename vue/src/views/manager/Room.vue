@@ -7,7 +7,7 @@
       <el-button type="warning" plain style="margin: 0 10px" @click="reset">重置</el-button>
     </div>
     <div class="card" style="margin-bottom: 5px">
-      <el-button type="primary" plain @click="handleAdd" v-if="data.user.role === 'CINEMA'">新增</el-button>
+      <el-button type="primary" plain @click="handleAdd" v-if="data.user.role === 'CINEMA' || data.user.role === 'ADMIN'">新增</el-button>
       <el-button type="danger" plain @click="delBatch">批量删除</el-button>
     </div>
 
@@ -18,7 +18,7 @@
         <el-table-column prop="name" label="影厅名称" />
         <el-table-column label="操作" width="100" fixed="right">
           <template v-slot="scope">
-            <el-button type="primary" circle :icon="Edit" @click="handleEdit(scope.row)" v-if="data.user.role === 'CINEMA'"></el-button>
+            <el-button type="primary" circle :icon="Edit" @click="handleEdit(scope.row)" v-if="data.user.role === 'CINEMA' || data.user.role === 'ADMIN'"></el-button>
             <el-button type="danger" circle :icon="Delete" @click="del(scope.row.id)"></el-button>
           </template>
         </el-table-column>
@@ -30,6 +30,16 @@
 
     <el-dialog title="影厅信息" v-model="data.formVisible" width="40%" destroy-on-close>
       <el-form ref="formRef" :rules="data.rules" :model="data.form" label-width="80px" style="padding: 20px">
+        <el-form-item prop="cinemaId" label="所属影院" v-if="data.user.role === 'ADMIN'">
+          <el-select v-model="data.form.cinemaId" placeholder="请选择所属影院">
+            <el-option
+                v-for="item in data.cinemaData"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item prop="name" label="影厅名称">
           <el-input v-model="data.form.name" placeholder="请输入影厅名称"></el-input>
         </el-form-item>
@@ -63,12 +73,28 @@ const data = reactive({
   name: null,
   cinemaName: null,
   ids: [],
+  cinemaData: [],
   rules: {
     name: [
       { required: true, message: '请输入影厅名称', trigger: 'blur' }
     ],
+    cinemaId: [
+      { required: true, message: '请选择所属影院', trigger: 'change' }
+    ],
   }
 })
+
+const loadCinema = () => {
+  if (data.user.role === 'ADMIN') {
+    request.get('/cinema/selectAll').then(res => {
+      if (res.code === '200') {
+        data.cinemaData = res.data
+      } else {
+        ElMessage.error(res.msg)
+      }
+    })
+  }
+}
 
 const load = () => {
   request.get('/room/selectPage', {
@@ -89,6 +115,9 @@ const load = () => {
 }
 const handleAdd = () => {
   data.form = {}
+  if (data.user.role === 'CINEMA') {
+    data.form.cinemaId = data.user.id
+  }
   data.formVisible = true
 }
 const handleEdit = (row) => {
@@ -167,5 +196,6 @@ const reset = () => {
   load()
 }
 
+loadCinema()
 load()
 </script>
