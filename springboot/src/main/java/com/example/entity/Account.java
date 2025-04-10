@@ -11,6 +11,13 @@ public class Account {
     private String token;
     private String phone;
     private String email;
+    private String address;
+    private String leader;
+    private String code;
+    private String front;
+    private String back;
+    private String certificate;
+    private String status;
 
     public Integer getId() {
         return id;
@@ -82,5 +89,61 @@ public class Account {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getLeader() {
+        return leader;
+    }
+
+    public void setLeader(String leader) {
+        this.leader = leader;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
+    }
+
+    public String getFront() {
+        return front;
+    }
+
+    public void setFront(String front) {
+        this.front = front;
+    }
+
+    public String getBack() {
+        return back;
+    }
+
+    public void setBack(String back) {
+        this.back = back;
+    }
+
+    public String getCertificate() {
+        return certificate;
+    }
+
+    public void setCertificate(String certificate) {
+        this.certificate = certificate;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

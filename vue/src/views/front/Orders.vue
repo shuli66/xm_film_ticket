@@ -149,6 +149,9 @@
           </span>
         </div>
       </div>
+      <div class="ticket-actions" v-if="data.currentTicket.status === '待取票'">
+        <el-button type="primary" @click="confirmPickup">确认取票</el-button>
+      </div>
     </div>
   </el-dialog>
 </template>
@@ -230,6 +233,18 @@ const showTicket = (row) => {
   data.ticketVisible = true
 }
 
+const confirmPickup = () => {
+  request.get('/orders/pickup/' + data.currentTicket.id).then(res => {
+    if (res.code === '200') {
+      ElMessage.success('取票成功')
+      data.ticketVisible = false
+      load()
+    } else {
+      ElMessage.error(res.msg)
+    }
+  })
+}
+
 load();
 </script>
 
@@ -289,6 +304,11 @@ load();
   .value {
     flex: 1;
     color: #333;
+  }
+
+  .ticket-actions {
+    margin-top: 20px;
+    text-align: center;
   }
 }
 </style>

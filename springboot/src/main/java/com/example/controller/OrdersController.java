@@ -106,4 +106,13 @@ public class OrdersController {
         return Result.success(price);
     }
 
+    /**
+     * 更新订单状态为已取票
+     */
+    @GetMapping("/pickup/{id}")
+    public Result pickup(@PathVariable Integer id) {
+        ordersService.pickup(id);
+        return Result.success();
+    }
+
 }

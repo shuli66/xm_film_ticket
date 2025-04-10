@@ -147,4 +147,19 @@ public class OrdersService {
     public Orders selectByOrderNo(String orderNo) {
         return ordersMapper.selectByOrderNo(orderNo);
     }
+
+    /**
+     * 更新订单状态为已取票
+     */
+    public void pickup(Integer id) {
+        Orders orders = ordersMapper.selectById(id);
+        if (orders == null) {
+            throw new CustomException("500", "订单不存在");
+        }
+        if (!"待取票".equals(orders.getStatus())) {
+            throw new CustomException("500", "订单状态不正确，无法取票");
+        }
+        orders.setStatus("已取票");
+        ordersMapper.updateById(orders);
+    }
 }

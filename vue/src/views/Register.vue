@@ -14,8 +14,8 @@
       </div>
 
       <!-- 通用注册表单 -->
-      <el-form ref="formRef" :model="data.form" :rules="data.rules">
-        <el-form-item prop="username">
+      <el-form ref="formRef" :model="data.form" :rules="data.rules" label-position="top">
+        <el-form-item prop="username" label="账号">
           <el-input 
             :prefix-icon="User" 
             size="large" 
@@ -25,11 +25,11 @@
             show-word-limit
           >
             <template #prepend>
-              <div class="input-label">账号</div>
+              <div class="input-label required">账号</div>
             </template>
           </el-input>
         </el-form-item>
-        <el-form-item prop="name">
+        <el-form-item prop="name" label="昵称">
           <el-input 
             :prefix-icon="Avatar" 
             size="large" 
@@ -39,7 +39,7 @@
             show-word-limit
           >
             <template #prepend>
-              <div class="input-label">昵称</div>
+              <div class="input-label required">昵称</div>
             </template>
           </el-input>
         </el-form-item>
@@ -85,7 +85,7 @@
               maxlength="11"
             >
               <template #prepend>
-                <div class="input-label">手机</div>
+                <div class="input-label required">手机</div>
               </template>
             </el-input>
           </el-form-item>
@@ -114,7 +114,7 @@
               maxlength="11"
             >
               <template #prepend>
-                <div class="input-label">电话</div>
+                <div class="input-label required">电话</div>
               </template>
             </el-input>
           </el-form-item>
@@ -126,7 +126,7 @@
               placeholder="请输入邮箱"
             >
               <template #prepend>
-                <div class="input-label">邮箱</div>
+                <div class="input-label required">邮箱</div>
               </template>
             </el-input>
           </el-form-item>
@@ -138,7 +138,7 @@
               placeholder="请输入地址"
             >
               <template #prepend>
-                <div class="input-label">地址</div>
+                <div class="input-label required">地址</div>
               </template>
             </el-input>
           </el-form-item>
@@ -150,7 +150,7 @@
               placeholder="请输入负责人姓名"
             >
               <template #prepend>
-                <div class="input-label">负责人</div>
+                <div class="input-label required">负责人</div>
               </template>
             </el-input>
           </el-form-item>
@@ -163,14 +163,14 @@
               placeholder="请输入负责人身份证号"
             >
               <template #prepend>
-                <div class="input-label">证件号</div>
+                <div class="input-label required">证件号</div>
               </template>
             </el-input>
           </el-form-item>
-          <el-form-item>
-            <p class="field-label">上传身份证正面照片</p>
+          <el-form-item prop="front">
+            <p class="field-label required">上传身份证正面照片</p>
             <el-upload
-              action="/files/upload"
+              :action="baseUrl + '/files/upload'"
               :on-success="(res) => handleUploadSuccess(res, 'front')"
               :before-upload="beforeUpload"
               list-type="picture-card"
@@ -180,10 +180,10 @@
               <el-icon><Plus /></el-icon>
             </el-upload>
           </el-form-item>
-          <el-form-item>
-            <p class="field-label">上传身份证反面照片</p>
+          <el-form-item prop="back">
+            <p class="field-label required">上传身份证反面照片</p>
             <el-upload
-              action="/files/upload"
+              :action="baseUrl + '/files/upload'"
               :on-success="(res) => handleUploadSuccess(res, 'back')"
               :before-upload="beforeUpload"
               list-type="picture-card"
@@ -193,10 +193,10 @@
               <el-icon><Plus /></el-icon>
             </el-upload>
           </el-form-item>
-          <el-form-item>
-            <p class="field-label">上传营业执照</p>
+          <el-form-item prop="certificate">
+            <p class="field-label required">上传营业执照</p>
             <el-upload
-              action="/files/upload"
+              :action="baseUrl + '/files/upload'"
               :on-success="(res) => handleUploadSuccess(res, 'certificate')"
               :before-upload="beforeUpload"
               list-type="picture-card"
@@ -226,6 +226,8 @@ import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
 import router from "@/router/index.js";
 
+const baseUrl = import.meta.env.VITE_BASE_URL;
+
 // 文件上传相关
 const frontFileList = ref([]);
 const backFileList = ref([]);
@@ -250,6 +252,9 @@ watch(selectedRole, (newVal) => {
     data.rules.address = [{ required: true, message: '请输入地址', trigger: 'blur' }];
     data.rules.leader = [{ required: true, message: '请输入负责人姓名', trigger: 'blur' }];
     data.rules.code = [{ required: true, message: '请输入身份证号', trigger: 'blur' }];
+    data.rules.front = [{ required: true, message: '请上传身份证正面照片', trigger: 'change' }];
+    data.rules.back = [{ required: true, message: '请上传身份证反面照片', trigger: 'change' }];
+    data.rules.certificate = [{ required: true, message: '请上传营业执照', trigger: 'change' }];
   }
 });
 
@@ -257,6 +262,8 @@ watch(selectedRole, (newVal) => {
 const handleUploadSuccess = (res, field) => {
   if (res.code === '200') {
     data.form[field] = res.data;
+    // 手动触发验证
+    formRef.value?.validateField(field);
   } else {
     ElMessage.error('上传失败');
   }
@@ -384,12 +391,35 @@ const register = () => {
       // 设置角色
       data.form.role = selectedRole.value;
       
-      // 添加影院注册的默认状态
+      // 检查所有必填字段
+      const missingFields = [];
+      
+      // 通用字段检查
+      if (!data.form.username) missingFields.push('账号');
+      if (!data.form.name) missingFields.push('昵称');
+      if (!data.form.password) missingFields.push('密码');
+      if (!data.form.confirmPassword) missingFields.push('确认密码');
+      if (!data.form.phone) missingFields.push('手机号/联系电话');
+      
+      // 影院特有字段检查
       if (selectedRole.value === 'CINEMA') {
-        if (!data.form.front || !data.form.back || !data.form.certificate) {
-          ElMessage.error('请上传所有必要的证件照片');
-          return;
-        }
+        if (!data.form.email) missingFields.push('邮箱');
+        if (!data.form.address) missingFields.push('地址');
+        if (!data.form.leader) missingFields.push('负责人');
+        if (!data.form.code) missingFields.push('身份证号');
+        if (!data.form.front) missingFields.push('身份证正面照片');
+        if (!data.form.back) missingFields.push('身份证反面照片');
+        if (!data.form.certificate) missingFields.push('营业执照');
+      }
+      
+      // 如果有缺失字段，显示统一提示
+      if (missingFields.length > 0) {
+        ElMessage({
+          type: 'warning',
+          message: `请填写以下必填项: ${missingFields.join('、')}`,
+          duration: 3000
+        });
+        return;
       }
       
       request.post('/register', data.form).then(res => {
@@ -418,6 +448,13 @@ const register = () => {
           duration: 3000
         })
       })
+    } else {
+      // 表单验证未通过，显示提示
+      ElMessage({
+        type: 'warning',
+        message: '请正确填写所有必填项',
+        duration: 3000
+      });
     }
   })
 }
@@ -489,6 +526,12 @@ const register = () => {
   text-align: justify;
   text-align-last: justify;
   color: #606266;
+}
+
+.required:after {
+  content: '*';
+  color: #F56C6C;
+  margin-left: 4px;
 }
 
 .sub-title {
