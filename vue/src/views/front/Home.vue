@@ -9,7 +9,7 @@
             <span class="title-text">为你推荐</span>
             <span class="title-count">({{ data.recommended?.length }}部)</span>
           </div>
-          <div class="view-all" @click="$router.push('/front/film')">全部 ></div>
+          <div class="view-all" @click="$router.push('/front/film?category=recommended')">全部 ></div>
         </div>
         <div class="movie-grid">
           <el-row :gutter="20">
@@ -30,7 +30,7 @@
             <span class="title-text">正在热播</span>
             <span class="title-count">({{ data.data1?.length }}部)</span>
           </div>
-          <div class="view-all" @click="$router.push('/front/film')">全部 ></div>
+          <div class="view-all" @click="$router.push('/front/film?category=playing')">全部 ></div>
         </div>
         <div class="movie-grid">
           <el-row :gutter="20">
@@ -51,7 +51,7 @@
             <span class="title-text">即将上映</span>
             <span class="title-count">({{ data.data2?.length }}部)</span>
           </div>
-          <div class="view-all" @click="$router.push('/front/film')">全部 ></div>
+          <div class="view-all" @click="$router.push('/front/film?category=upcoming')">全部 ></div>
         </div>
         <div class="movie-grid">
           <el-row :gutter="20">

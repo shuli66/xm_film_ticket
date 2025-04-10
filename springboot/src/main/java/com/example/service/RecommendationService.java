@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class RecommendationService {
@@ -21,146 +22,211 @@ public class RecommendationService {
     @Autowired
     private UserService userService;
 
-    // 获取用户评分矩阵并填充缺失评分
+    // 获取用户评分矩阵
     public Map<Integer, Map<Integer, Double>> getUserFilmRatings() {
-        List<Score> scoreList = userService.getAllScores(); // 获取所有评分
+        List<Score> scoreList = userService.getAllScores();
         Map<Integer, Map<Integer, Double>> userFilmRatings = new HashMap<>();
+        
+        // 计算每部电影的平均评分和标准差
         Map<Integer, Double> filmAverageRatings = new HashMap<>();
-
-        // 获取电影的平均评分
+        Map<Integer, Double> filmStdDevs = new HashMap<>();
+        Map<Integer, Integer> filmRatingCounts = new HashMap<>();
+        
+        // 计算每部电影的总评分和评分次数
         for (Score score : scoreList) {
-            filmAverageRatings.put(score.getFilmId(),
-                    filmAverageRatings.getOrDefault(score.getFilmId(), 0.0) + score.getScore());
+            int filmId = score.getFilmId();
+            filmAverageRatings.put(filmId, 
+                    filmAverageRatings.getOrDefault(filmId, 0.0) + score.getScore());
+            filmRatingCounts.put(filmId, 
+                    filmRatingCounts.getOrDefault(filmId, 0) + 1);
+        }
+        
+        // 计算每部电影的平均评分
+        for (Integer filmId : filmAverageRatings.keySet()) {
+            filmAverageRatings.put(filmId, 
+                    filmAverageRatings.get(filmId) / filmRatingCounts.get(filmId));
+        }
+        
+        // 计算标准差
+        for (Score score : scoreList) {
+            int filmId = score.getFilmId();
+            double diff = score.getScore() - filmAverageRatings.get(filmId);
+            filmStdDevs.put(filmId, 
+                    filmStdDevs.getOrDefault(filmId, 0.0) + diff * diff);
+        }
+        
+        for (Integer filmId : filmStdDevs.keySet()) {
+            filmStdDevs.put(filmId, 
+                    Math.sqrt(filmStdDevs.get(filmId) / filmRatingCounts.get(filmId)));
         }
 
-        for (Map.Entry<Integer, Double> entry : filmAverageRatings.entrySet()) {
-            filmAverageRatings.put(entry.getKey(), entry.getValue() / scoreList.size());
-        }
-
-        // 填充评分数据
+        // 填充用户的实际评分数据
         for (Score score : scoreList) {
             userFilmRatings
                     .computeIfAbsent(score.getUserId(), k -> new HashMap<>())
                     .put(score.getFilmId(), score.getScore());
         }
 
-        // 填充缺失评分
-        for (Map.Entry<Integer, Map<Integer, Double>> userEntry : userFilmRatings.entrySet()) {
-            Map<Integer, Double> userRatings = userEntry.getValue();
-            for (Map.Entry<Integer, Double> filmEntry : filmAverageRatings.entrySet()) {
-                if (!userRatings.containsKey(filmEntry.getKey())) {
-                    userRatings.put(filmEntry.getKey(), filmEntry.getValue());  // 填充为电影平均评分
-                }
-            }
-        }
-
         return userFilmRatings;
     }
 
-    // 基于相似度预测评分
-    public double predictRating(int targetUserId, int filmId, Map<Integer, Map<Integer, Double>> userFilmRatings) {
+    // 计算皮尔逊相关系数
+    private double calculatePearsonCorrelation(Map<Integer, Double> userRatings1, 
+                                             Map<Integer, Double> userRatings2) {
+        Set<Integer> commonFilms = new HashSet<>(userRatings1.keySet());
+        commonFilms.retainAll(userRatings2.keySet());
+        
+        if (commonFilms.isEmpty()) {
+            return 0.0;
+        }
+
+        double sum1 = 0.0, sum2 = 0.0;
+        double sum1Sq = 0.0, sum2Sq = 0.0;
+        double pSum = 0.0;
+        int n = commonFilms.size();
+
+        for (Integer filmId : commonFilms) {
+            double rating1 = userRatings1.get(filmId);
+            double rating2 = userRatings2.get(filmId);
+            
+            sum1 += rating1;
+            sum2 += rating2;
+            sum1Sq += rating1 * rating1;
+            sum2Sq += rating2 * rating2;
+            pSum += rating1 * rating2;
+        }
+
+        double num = pSum - (sum1 * sum2 / n);
+        double den = Math.sqrt((sum1Sq - sum1 * sum1 / n) * (sum2Sq - sum2 * sum2 / n));
+        
+        return den == 0 ? 0 : num / den;
+    }
+
+    // 预测评分
+    public double predictRating(int targetUserId, int filmId, 
+                              Map<Integer, Map<Integer, Double>> userFilmRatings) {
         Map<Integer, Double> targetUserRatings = userFilmRatings.get(targetUserId);
+        if (targetUserRatings == null) {
+            return 0.0;
+        }
+
+        List<Map.Entry<Integer, Double>> similarUsers = new ArrayList<>();
+        
+        // 计算用户相似度
+        for (Map.Entry<Integer, Map<Integer, Double>> entry : userFilmRatings.entrySet()) {
+            int otherUserId = entry.getKey();
+            if (otherUserId != targetUserId && entry.getValue().containsKey(filmId)) {
+                double similarity = calculatePearsonCorrelation(targetUserRatings, entry.getValue());
+                if (similarity > 0) {
+                    similarUsers.add(new AbstractMap.SimpleEntry<>(otherUserId, similarity));
+                }
+            }
+        }
+        
+        // 选取相似度最高的前N个用户
+        final int MAX_SIMILAR_USERS = 5;
+        similarUsers.sort((e1, e2) -> Double.compare(e2.getValue(), e1.getValue()));
+        int userLimit = Math.min(similarUsers.size(), MAX_SIMILAR_USERS);
+        similarUsers = similarUsers.subList(0, userLimit);
+        
+        if (similarUsers.isEmpty()) {
+            return userFilmRatings.values().stream()
+                    .filter(ratings -> ratings.containsKey(filmId))
+                    .mapToDouble(ratings -> ratings.get(filmId))
+                    .average()
+                    .orElse(5.0);
+        }
 
         // 计算加权评分
         double numerator = 0.0;
         double denominator = 0.0;
 
-        for (Map.Entry<Integer, Map<Integer, Double>> entry : userFilmRatings.entrySet()) {
+        for (Map.Entry<Integer, Double> entry : similarUsers) {
             int otherUserId = entry.getKey();
-            if (otherUserId != targetUserId && entry.getValue().containsKey(filmId)) {
-                double similarity = calculateCosineSimilarity(targetUserRatings, entry.getValue());
-                numerator += similarity * entry.getValue().get(filmId);
-                denominator += Math.abs(similarity);
-            }
+            double similarity = entry.getValue();
+            double rating = userFilmRatings.get(otherUserId).get(filmId);
+            numerator += similarity * rating;
+            denominator += Math.abs(similarity);
         }
 
-        if (denominator == 0) {
-            return 0;  // 如果没有相似用户，返回 0 或者电影的平均评分
-        }
-
-        return numerator / denominator;
+        return denominator == 0 ? 0.0 : numerator / denominator;
     }
 
-    // 计算余弦相似度
-    private double calculateCosineSimilarity(Map<Integer, Double> userRatings1, Map<Integer, Double> userRatings2) {
-        if (userRatings1 == null || userRatings2 == null) {
-            return 0.0; // 如果任意一个用户的评分数据为 null，直接返回 0.0
+    // 获取基于内容的推荐
+    private List<Film> getContentBasedRecommendations(Integer userId, List<Film> allFilms) {
+        List<Film> recommendations = new ArrayList<>();
+        
+        // 获取用户收藏的电影
+        List<Film> userCollectedFilms = filmService.getFilmsByUserId(userId);
+        if (userCollectedFilms.isEmpty()) {
+            return recommendations;
         }
 
-        double dotProduct = 0.0;
-        double norm1 = 0.0;
-        double norm2 = 0.0;
-
-        // 计算余弦相似度
-        for (Map.Entry<Integer, Double> entry : userRatings1.entrySet()) {
-            Integer filmId = entry.getKey();
-            if (userRatings2.containsKey(filmId)) {
-                dotProduct += entry.getValue() * userRatings2.get(filmId);
-                norm1 += Math.pow(entry.getValue(), 2);
-                norm2 += Math.pow(userRatings2.get(filmId), 2);
-            }
-        }
-
-        // 如果其中任何一个用户的评分数据为空，则返回 0
-        return (norm1 == 0 || norm2 == 0) ? 0.0 : dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
-    }
-
-
-    // 获取电影推荐列表
-    public List<Film> recommendFilmsByUser(Integer userId) {
-        // 获取用户的历史收藏电影
-        List<Film> collectedFilms = filmService.getFilmsByUserId(userId);
-        // 获取用户的评论
-        List<Comment> userComments = commentService.selectByUserId(userId);
-
-        // 获取电影分类（根据收藏的电影）
-        Map<Integer, Long> filmCategories = new HashMap<>();
-        for (Film film : collectedFilms) {
+        // 提取用户偏好特征
+        Set<Integer> preferredTypes = new HashSet<>();
+        Set<Integer> preferredAreas = new HashSet<>();
+        
+        for (Film film : userCollectedFilms) {
             List<Integer> typeIds = JSONUtil.toList(film.getTypeIds(), Integer.class);
-            for (Integer typeId : typeIds) {
-                filmCategories.put(typeId, filmCategories.getOrDefault(typeId, 0L) + 1);
+            preferredTypes.addAll(typeIds);
+            preferredAreas.add(film.getAreaId());
+        }
+
+        // 基于用户偏好推荐电影
+        for (Film film : allFilms) {
+            if (userCollectedFilms.stream().anyMatch(f -> f.getId().equals(film.getId()))) {
+                continue; // 跳过已收藏的电影
+            }
+
+            List<Integer> filmTypeIds = JSONUtil.toList(film.getTypeIds(), Integer.class);
+            boolean hasPreferredType = filmTypeIds.stream().anyMatch(preferredTypes::contains);
+            boolean hasPreferredArea = preferredAreas.contains(film.getAreaId());
+
+            if (hasPreferredType || hasPreferredArea) {
+                recommendations.add(film);
             }
         }
 
-        // 排序分类，优先推荐收藏最多的类别
-        List<Map.Entry<Integer, Long>> sortedCategories = new ArrayList<>(filmCategories.entrySet());
-        sortedCategories.sort((entry1, entry2) -> Long.compare(entry2.getValue(), entry1.getValue()));
+        return recommendations;
+    }
 
-        List<Film> recommendedFilms = new ArrayList<>();
-        for (Map.Entry<Integer, Long> categoryEntry : sortedCategories) {
-            // 获取该分类下的电影
-            List<Film> filmsInCategory = filmService.getFilmsByCategory(categoryEntry.getKey());
-            recommendedFilms.addAll(filmsInCategory);
-
-            // 如果已推荐的电影不足 8 部，则继续推荐其他类别
-            if (recommendedFilms.size() >= 8) {
-                break;
+    // 综合推荐方法
+    public List<Film> recommendFilmsByUser(Integer userId) {
+        List<Film> allFilms = filmService.selectAll(new Film());
+        Map<Integer, Map<Integer, Double>> userFilmRatings = getUserFilmRatings();
+        
+        // 1. 获取基于内容的推荐
+        List<Film> contentBasedRecommendations = getContentBasedRecommendations(userId, allFilms);
+        
+        // 2. 获取协同过滤推荐
+        List<Film> collaborativeRecommendations = new ArrayList<>();
+        Map<Integer, Double> filmScores = new HashMap<>();
+        
+        for (Film film : allFilms) {
+            if (contentBasedRecommendations.stream().anyMatch(f -> f.getId().equals(film.getId()))) {
+                continue; // 跳过基于内容推荐的电影
+            }
+            
+            double predictedScore = predictRating(userId, film.getId(), userFilmRatings);
+            if (predictedScore > 0) {
+                filmScores.put(film.getId(), predictedScore);
+                collaborativeRecommendations.add(film);
             }
         }
-
-        // 如果推荐的电影不足 8 部，基于协同过滤进一步推荐
-        if (recommendedFilms.size() < 8) {
-            Map<Integer, Map<Integer, Double>> userFilmRatings = getUserFilmRatings();
-            for (Film film : filmService.selectAll(new Film())) {
-                if (!recommendedFilms.contains(film)) {
-                    double predictedRating = predictRating(userId, film.getId(), userFilmRatings);
-                    if (predictedRating > 3.5) { // 设置一个阈值，例如预测评分大于3.5
-                        recommendedFilms.add(film);
-                    }
-                    if (recommendedFilms.size() >= 8) {
-                        break;
-                    }
-                }
-            }
-        }
-
-        // 如果推荐的电影不足 8 部，从电影库中随机推荐
-        if (recommendedFilms.size() < 8) {
-            List<Film> randomFilms = filmService.selectAll(new Film());
-            Collections.shuffle(randomFilms);
-            recommendedFilms.addAll(randomFilms.subList(0, 8 - recommendedFilms.size()));
-        }
-
-        return recommendedFilms;
+        
+        // 3. 合并推荐结果并排序
+        List<Film> finalRecommendations = new ArrayList<>(contentBasedRecommendations);
+        
+        // 按预测评分排序协同过滤推荐结果
+        collaborativeRecommendations.sort((f1, f2) -> 
+            Double.compare(filmScores.get(f2.getId()), filmScores.get(f1.getId())));
+        
+        finalRecommendations.addAll(collaborativeRecommendations);
+        
+        // 4. 限制推荐数量
+        final int MAX_RECOMMENDATIONS = 8;
+        return finalRecommendations.stream()
+                .limit(MAX_RECOMMENDATIONS)
+                .collect(Collectors.toList());
     }
 }

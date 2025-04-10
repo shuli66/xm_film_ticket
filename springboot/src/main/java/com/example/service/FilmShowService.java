@@ -36,7 +36,9 @@ public class FilmShowService {
 
     public void add(FilmShow filmShow) {
         Account currentUser = TokenUtils.getCurrentUser();
-        filmShow.setCinemaId(currentUser.getId());
+        if (RoleEnum.CINEMA.name().equals(currentUser.getRole()) && filmShow.getCinemaId() == null) {
+            filmShow.setCinemaId(currentUser.getId());
+        }
         filmShowMapper.insert(filmShow);
     }
 

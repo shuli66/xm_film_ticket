@@ -76,13 +76,17 @@
           </el-select>
         </el-form-item>
         <el-form-item prop="filmId" label="放映电影">
-          <el-select v-model="data.form.filmId" placeholder="请选择放映电影">
+          <el-select v-model="data.form.filmId" placeholder="请选择放映电影" @change="handleFilmChange">
             <el-option
                 v-for="item in data.filmData"
                 :key="item.id"
                 :label="item.title"
                 :value="item.id"
-            />
+                :disabled="item.status !== '已上映'"
+            >
+              <span>{{ item.title }}</span>
+              <span v-if="item.status !== '已上映'" style="color: #ff4949; margin-left: 10px;">({{ item.status }})</span>
+            </el-option>
           </el-select>
         </el-form-item>
         <el-form-item prop="time" label="放映时间">
@@ -174,20 +178,51 @@ const loadCinema = () => {
 
 const handleCinemaChange = (cinemaId) => {
   // 当选择影院后，加载该影院的影厅
-  loadRoom(cinemaId)
+  if (cinemaId) {
+    loadRoom(cinemaId)
+    // 清空已选择的影厅ID，避免使用不属于该影院的影厅
+    data.form.roomId = null
+  } else {
+    // 未选择影院时清空影厅数据
+    data.roomData = []
+  }
 }
 
 const loadRoom = (cinemaId) => {
+  if (!cinemaId && data.user.role === 'ADMIN') {
+    // 系统管理员未指定影院ID时，不加载影厅数据
+    data.roomData = []
+    return
+  }
+  
+  // 确保有影院ID传入
+  const queryId = cinemaId || (data.user.role === 'CINEMA' ? data.user.id : null)
+  
+  if (!queryId) {
+    data.roomData = []
+    return
+  }
+  
   request.get('/room/selectAll', {
     params: {
-      cinemaId: cinemaId || data.user.id
+      cinemaId: queryId
     }
   }).then(res => {
     if (res.code === '200') {
       data.roomData = res.data
+      // 如果当前选择的影厅不属于这个影院，清空选择
+      if (data.form.roomId) {
+        const roomExists = data.roomData.some(room => room.id === data.form.roomId)
+        if (!roomExists) {
+          data.form.roomId = null
+        }
+      }
     } else {
       ElMessage.error(res.msg)
+      data.roomData = []
     }
+  }).catch(() => {
+    data.roomData = []
   })
 }
 
@@ -227,7 +262,10 @@ const handleAdd = () => {
   data.form.status = '购票中'
   if (data.user.role === 'CINEMA') {
     data.form.cinemaId = data.user.id
-    loadRoom()
+    loadRoom(data.user.id)  // 传入影院ID加载对应影厅
+  } else if (data.user.role === 'ADMIN') {
+    // 系统管理员默认先清空影厅数据，等待选择影院
+    data.roomData = []
   }
   data.formVisible = true
 }
@@ -235,7 +273,11 @@ const handleAdd = () => {
 const handleEdit = (row) => {
   data.form = JSON.parse(JSON.stringify(row))
   if (data.user.role === 'ADMIN') {
+    // 根据当前选中的影院ID加载对应影厅
     loadRoom(data.form.cinemaId)
+  } else if (data.user.role === 'CINEMA') {
+    // 影院管理员加载自己的影厅
+    loadRoom(data.user.id)
   }
   data.formVisible = true
 }
@@ -265,6 +307,15 @@ const update = () => {
 const save = () => {
   formRef.value.validate(valid => {
     if (valid) {
+      // 再次检查电影是否已上映
+      const filmId = data.form.filmId;
+      const selectedFilm = data.filmData.find(film => film.id === filmId);
+      
+      if (selectedFilm && selectedFilm.status !== '已上映') {
+        ElMessage.error(`《${selectedFilm.title}》${selectedFilm.status}，无法添加放映记录`);
+        return;
+      }
+      
       data.form.id ? update() : add()
     }
   })
@@ -319,6 +370,15 @@ const reset = () => {
 
 const handleChange = (value) => {
   console.log(value)
+}
+
+const handleFilmChange = (filmId) => {
+  // 检查所选电影是否已上映
+  const selectedFilm = data.filmData.find(film => film.id === filmId);
+  if (selectedFilm && selectedFilm.status !== '已上映') {
+    ElMessage.warning(`《${selectedFilm.title}》${selectedFilm.status}，无法添加放映记录`);
+    data.form.filmId = null; // 清空选择
+  }
 }
 
 loadCinema()

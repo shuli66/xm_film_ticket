@@ -23,11 +23,21 @@ public class RoomService {
 
     public void add(Room room) {
         Account currentUser = TokenUtils.getCurrentUser();
-        room.setCinemaId(currentUser.getId());
+        if (RoleEnum.CINEMA.name().equals(currentUser.getRole())) {
+            // 如果是影院管理员，使用当前用户ID作为cinemaId
+            room.setCinemaId(currentUser.getId());
+        }
+        // 如果是系统管理员，使用前端传入的cinemaId
         roomMapper.insert(room);
     }
 
     public void updateById(Room room) {
+        Account currentUser = TokenUtils.getCurrentUser();
+        // 只有在CINEMA角色且没有指定cinemaId时才设置影院ID
+        if (RoleEnum.CINEMA.name().equals(currentUser.getRole()) && room.getCinemaId() == null) {
+            room.setCinemaId(currentUser.getId());
+        }
+        // 保留前端传入的cinemaId
         roomMapper.updateById(room);
     }
 

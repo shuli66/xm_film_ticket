@@ -12,16 +12,29 @@
       <div class="announcement-section">
         <div class="announcement-header">
           <h2>系统公告</h2>
+          <span class="announcement-count">{{ data.noticeData.length }}条公告</span>
         </div>
         <el-timeline class="timeline">
           <el-timeline-item
               v-for="(item, index) in data.noticeData"
               :key="index"
               :timestamp="item.time"
+              :type="getNoticeType(index)"
+              :color="getNoticeColor(index)"
               class="announcement-item"
           >
             <div class="announcement-box">
-              {{ item.content }}
+              <div class="announcement-content">{{ item.content }}</div>
+              <div class="announcement-footer">
+                <span class="announcement-time">{{ formatTime(item.time) }}</span>
+                <el-tag 
+                  size="small" 
+                  :type="index % 4 === 0 ? 'danger' : index % 3 === 0 ? 'warning' : index % 2 === 0 ? 'success' : 'info'"
+                  effect="dark"
+                >
+                  {{ index % 4 === 0 ? '重要' : index % 3 === 0 ? '系统' : index % 2 === 0 ? '功能' : '常规' }}
+                </el-tag>
+              </div>
             </div>
           </el-timeline-item>
         </el-timeline>
@@ -49,15 +62,35 @@ const loadNotice = () => {
     }
   })
 }
+
+// 格式化时间为更易读的格式
+const formatTime = (time) => {
+  if (!time) return '';
+  const date = new Date(time);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+// 根据索引生成不同类型的时间线项目
+const getNoticeType = (index) => {
+  const types = ['primary', 'success', 'warning', 'danger', 'info'];
+  return types[index % types.length];
+}
+
+// 根据索引生成不同颜色的时间线项目
+const getNoticeColor = (index) => {
+  const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399'];
+  return colors[index % colors.length];
+}
+
 loadNotice()
 </script>
 
 <style scoped>
 /* 整体容器 */
 .container {
-  background-color: #f0f4f8; /* 更柔和的背景色 */
+  background-color: #f5f7fa;
   min-height: 100vh;
-  padding: 60px 30px; /* 增加内边距 */
+  padding: 60px 30px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -66,27 +99,42 @@ loadNotice()
 
 /* 欢迎卡片样式 */
 .welcome-card {
-  background-color: #ffffff;
-  padding: 40px; /* 增加内边距 */
-  border-radius: 15px; /* 更圆的边角 */
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); /* 更明显的阴影 */
+  background: linear-gradient(135deg, #3f87e8, #2a6fc5);
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(47, 128, 237, 0.2);
   text-align: center;
-  margin-bottom: 40px; /* 增加底部间距 */
+  margin-bottom: 40px;
   width: 100%;
-  max-width: 900px; /* 增加最大宽度 */
+  max-width: 900px;
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+  opacity: 0.7;
+  pointer-events: none;
 }
 
 .welcome-message h1 {
-  font-size: 32px; /* 增加字体大小 */
-  font-weight: 700; /* 更加醒目的字体 */
-  color: #333;
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
   margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .welcome-message p {
-  font-size: 20px; /* 增加字体大小 */
+  font-size: 20px;
   margin-top: 15px;
-  color: #666;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 /* 内容部分布局 */
@@ -99,83 +147,144 @@ loadNotice()
 
 .announcement-section {
   width: 100%;
-  max-width: 900px; /* 增加最大宽度 */
+  max-width: 900px;
   background: #ffffff;
-  border-radius: 15px; /* 更圆的边角 */
-  padding: 40px; /* 增加内边距 */
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); /* 更明显的阴影 */
+  border-radius: 16px;
+  padding: 30px 40px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.announcement-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  position: relative;
 }
 
 .announcement-header h2 {
-  font-size: 28px; /* 增加字体大小 */
-  color: #007bff;
-  font-weight: 700; /* 更加醒目的字体 */
-  margin-bottom: 25px; /* 增加底部间距 */
-  border-bottom: 2px solid #007bff;
-  padding-bottom: 12px; /* 增加底部内边距 */
+  font-size: 24px;
+  color: #333;
+  font-weight: 600;
+  margin: 0;
+  padding-left: 15px;
+  position: relative;
+}
+
+.announcement-header h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 22px;
+  background: #3f87e8;
+  border-radius: 2px;
+}
+
+.announcement-count {
+  font-size: 14px;
+  color: #909399;
+  background: #f5f7fa;
+  padding: 4px 12px;
+  border-radius: 12px;
 }
 
 /* 每个公告的框样式 */
+.timeline {
+  padding: 10px 0;
+}
+
 .announcement-item {
-  display: flex;
-  justify-content: flex-start; /* 设置左对齐 */
+  margin-bottom: 20px;
 }
 
 .announcement-box {
-  background-color: #ffffff;
-  border: 2px solid #e2e6ea;
-  border-radius: 10px; /* 更圆的边角 */
-  padding: 25px; /* 增加内边距 */
-  margin-bottom: 20px; /* 增加底部间距 */
+  background-color: #f9fafc;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 10px;
   width: 100%;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); /* 更加明显的阴影 */
-  font-size: 18px; /* 增加字体大小 */
-  color: #444;
-  transition: transform 0.3s, box-shadow 0.3s; /* 增加动画效果 */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+  border-left: 4px solid #3f87e8;
+}
+
+.announcement-content {
+  font-size: 16px;
+  color: #333;
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+
+.announcement-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.announcement-time {
+  color: #909399;
 }
 
 /* 鼠标悬停效果 */
 .announcement-box:hover {
-  transform: translateY(-5px); /* 鼠标悬停时稍微抬升 */
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25); /* 增加阴影 */
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  background-color: #fff;
 }
 
-/* 时间线样式 */
-.timeline .el-timeline-item {
-  position: relative;
-  padding-left: 50px; /* 增加左侧内边距 */
+/* 时间线样式定制 */
+:deep(.el-timeline-item__node) {
+  box-shadow: 0 0 0 4px rgba(63, 135, 232, 0.2);
 }
 
-.timeline .el-timeline-item .el-timeline-item-tail {
-  border-left: 4px solid #007bff;
+:deep(.el-timeline-item__timestamp) {
+  color: #909399;
+  margin-top: 8px;
 }
 
-.timeline .el-timeline-item .el-timeline-item-content {
-  font-size: 18px; /* 增加字体大小 */
-  color: #444;
+:deep(.el-timeline-item__tail) {
+  border-left: 2px dashed #dcdfe6;
 }
 
-.timeline .el-timeline-item .el-timeline-item-time {
-  font-size: 16px; /* 增加字体大小 */
-  color: #aaa;
+:deep(.el-tag--dark) {
+  border: none;
+  font-weight: 500;
+  padding: 0 8px;
+  height: 22px;
+  line-height: 22px;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
   .container {
-    padding: 30px; /* 减少内边距 */
+    padding: 20px;
   }
 
   .welcome-card {
-    padding: 25px; /* 减少内边距 */
+    padding: 25px;
+    margin-bottom: 25px;
   }
 
   .announcement-section {
-    padding: 25px; /* 减少内边距 */
+    padding: 20px;
   }
 
   .announcement-header h2 {
-    font-size: 24px; /* 减少字体大小 */
+    font-size: 20px;
+  }
+  
+  .announcement-content {
+    font-size: 14px;
+  }
+  
+  .announcement-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 }
 </style>

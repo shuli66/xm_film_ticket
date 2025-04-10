@@ -29,9 +29,9 @@
     </div>
 
     <el-dialog title="影厅信息" v-model="data.formVisible" width="40%" destroy-on-close>
-      <el-form ref="formRef" :rules="data.rules" :model="data.form" label-width="80px" style="padding: 20px">
+      <el-form ref="formRef" :rules="rules" :model="formData" label-width="80px" style="padding: 20px">
         <el-form-item prop="cinemaId" label="所属影院" v-if="data.user.role === 'ADMIN'">
-          <el-select v-model="data.form.cinemaId" placeholder="请选择所属影院">
+          <el-select v-model="selectedCinemaId" placeholder="请选择所属影院">
             <el-option
                 v-for="item in data.cinemaData"
                 :key="item.id"
@@ -41,7 +41,7 @@
           </el-select>
         </el-form-item>
         <el-form-item prop="name" label="影厅名称">
-          <el-input v-model="data.form.name" placeholder="请输入影厅名称"></el-input>
+          <el-input v-model="formData.name" placeholder="请输入影厅名称"></el-input>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -62,10 +62,21 @@ import {ElMessage, ElMessageBox} from "element-plus";
 import {Delete, Edit} from "@element-plus/icons-vue";
 
 const formRef = ref()
+const formData = ref({})  // 使用ref而不是reactive管理表单数据
+const selectedCinemaId = ref(null)  // 单独管理影院ID
+
+const rules = {
+  name: [
+    { required: true, message: '请输入影厅名称', trigger: 'blur' }
+  ],
+  cinemaId: [
+    { required: true, message: '请选择所属影院', trigger: 'change' }
+  ],
+}
+
 const data = reactive({
   user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
   formVisible: false,
-  form: {},
   tableData: [],
   pageNum: 1,
   pageSize: 8,
@@ -74,14 +85,6 @@ const data = reactive({
   cinemaName: null,
   ids: [],
   cinemaData: [],
-  rules: {
-    name: [
-      { required: true, message: '请输入影厅名称', trigger: 'blur' }
-    ],
-    cinemaId: [
-      { required: true, message: '请选择所属影院', trigger: 'change' }
-    ],
-  }
 })
 
 const loadCinema = () => {
@@ -89,6 +92,7 @@ const loadCinema = () => {
     request.get('/cinema/selectAll').then(res => {
       if (res.code === '200') {
         data.cinemaData = res.data
+        console.log("加载的影院数据:", data.cinemaData)
       } else {
         ElMessage.error(res.msg)
       }
@@ -113,19 +117,39 @@ const load = () => {
     }
   })
 }
+
 const handleAdd = () => {
-  data.form = {}
+  formData.value = {}  // 清空表单数据
+  selectedCinemaId.value = null  // 清空选择的影院
+  
   if (data.user.role === 'CINEMA') {
-    data.form.cinemaId = data.user.id
+    selectedCinemaId.value = data.user.id
   }
+  
   data.formVisible = true
 }
+
 const handleEdit = (row) => {
-  data.form = JSON.parse(JSON.stringify(row))
+  // 深拷贝行数据，避免引用问题
+  formData.value = JSON.parse(JSON.stringify(row))
+  
+  // 设置影院ID
+  selectedCinemaId.value = row.cinemaId
+  
+  console.log("编辑影厅，影院ID:", selectedCinemaId.value)
+  
   data.formVisible = true
 }
+
 const add = () => {
-  request.post('/room/add', data.form).then(res => {
+  const submitData = {
+    name: formData.value.name,
+    cinemaId: data.user.role === 'ADMIN' ? selectedCinemaId.value : data.user.id
+  }
+  
+  console.log("添加影厅，发送到后端的数据:", submitData)
+  
+  request.post('/room/add', submitData).then(res => {
     if (res.code === '200') {
       ElMessage.success('操作成功')
       data.formVisible = false
@@ -137,19 +161,54 @@ const add = () => {
 }
 
 const update = () => {
-  request.put('/room/update', data.form).then(res => {
+  // 明确指定ID
+  const submitData = {
+    id: formData.value.id,
+    name: formData.value.name,
+    cinemaId: data.user.role === 'ADMIN' ? selectedCinemaId.value : formData.value.cinemaId
+  }
+  
+  console.log("更新影厅，发送到后端的数据:", submitData)
+  
+  // 添加请求头，尝试避免缓存问题
+  request.put('/room/update', submitData, {
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      'X-Requested-With': 'XMLHttpRequest',
+      'timestamp': new Date().getTime() // 添加时间戳避免缓存
+    }
+  }).then(res => {
     if (res.code === '200') {
+      console.log("更新成功，后端响应:", res)
       ElMessage.success('操作成功')
       data.formVisible = false
-      load()
+      
+      // 强制刷新数据
+      setTimeout(() => {
+        load()
+      }, 300)
+    } else {
+      ElMessage.error(res.msg || '更新失败')
+      console.error("更新失败，错误信息:", res)
     }
+  }).catch(error => {
+    console.error("更新请求异常:", error)
+    ElMessage.error('请求异常: ' + (error.message || error))
   })
 }
 
 const save = () => {
   formRef.value.validate(valid => {
     if (valid) {
-      data.form.id ? update() : add()
+      if (data.user.role === 'ADMIN' && !selectedCinemaId.value) {
+        ElMessage.warning("请选择所属影院")
+        return
+      }
+      
+      console.log("保存影厅，选中的影院ID:", selectedCinemaId.value)
+      
+      formData.value.id ? update() : add()
     }
   })
 }
@@ -168,6 +227,7 @@ const del = (id) => {
     console.error(err)
   })
 }
+
 const delBatch = () => {
   if (!data.ids.length) {
     ElMessage.warning("请选择数据")
@@ -186,6 +246,7 @@ const delBatch = () => {
     console.error(err)
   })
 }
+
 const handleSelectionChange = (rows) => {
   data.ids = rows.map(v => v.id)
 }

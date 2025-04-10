@@ -1,6 +1,22 @@
 <template>
   <div class="film-wrapper">
     <div class="film-container">
+      <!-- 分类标签 -->
+      <div class="category-tabs">
+        <div class="category-tab" 
+             :class="{'active-tab': data.activeCategory === 'all'}" 
+             @click="changeCategory('all')">全部影片</div>
+        <div class="category-tab" 
+             :class="{'active-tab': data.activeCategory === 'playing'}" 
+             @click="changeCategory('playing')">正在热播</div>
+        <div class="category-tab" 
+             :class="{'active-tab': data.activeCategory === 'upcoming'}" 
+             @click="changeCategory('upcoming')">即将上映</div>
+        <div class="category-tab" 
+             :class="{'active-tab': data.activeCategory === 'recommended'}" 
+             @click="changeCategory('recommended')">为您推荐</div>
+      </div>
+
       <!-- 筛选区域 -->
       <div class="filter-section">
         <div class="filter-group">
@@ -102,13 +118,17 @@
 </template>
 
 <script setup>
-import {reactive, ref} from "vue";
+import {reactive, ref, onMounted} from "vue";
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
 import { ArrowRight, Film } from '@element-plus/icons-vue';
 import router from "@/router/index.js";
+import {useRoute} from 'vue-router';
+
+const route = useRoute();
 
 const data = reactive({
+  activeCategory: 'all', // 当前选中的分类: all, playing, upcoming, recommended
   typeFlag: null,
   areaFlag: null,
   yearFlag: null,
@@ -122,26 +142,93 @@ const data = reactive({
   loading: false
 })
 
+// 从URL参数确定初始选中的分类
+onMounted(() => {
+  const category = route.query.category;
+  if (category) {
+    data.activeCategory = category;
+  }
+  
+  // 初始加载数据
+  load();
+  loadType();
+  loadArea();
+  loadYear();
+});
+
+// 切换分类
+const changeCategory = (category) => {
+  data.activeCategory = category;
+  resetFilters(); // 重置筛选条件
+  load(); // 重新加载数据
+}
+
 const load = () => {
   data.loading = true;
-  request.get('/film/selectPage', {
-    params: {
+  
+  if (data.activeCategory === 'recommended') {
+    loadRecommendedFilms();
+  } else {
+    let params = {
       pageNum: data.pageNum,
       pageSize: data.pageSize,
       typeId: data.typeFlag,
       areaId: data.areaFlag,
       year: data.yearFlag
+    };
+    
+    // 根据分类添加额外的筛选条件
+    if (data.activeCategory === 'playing') {
+      params.status = '已上映';
+    } else if (data.activeCategory === 'upcoming') {
+      params.status = '待上映';
     }
-  }).then(res => {
+    
+    request.get('/film/selectPage', {
+      params: params
+    }).then(res => {
+      if (res.code === '200') {
+        data.filmData = res.data.list
+        data.total = res.data.total
+      } else {
+        ElMessage.error(res.msg)
+      }
+    }).finally(() => {
+      data.loading = false;
+    })
+  }
+}
+
+// 加载为您推荐的电影
+const loadRecommendedFilms = () => {
+  const user = JSON.parse(localStorage.getItem('xm-user'));
+  const userId = user ? user.id : null;
+  
+  if (!userId) {
+    ElMessage.warning('请先登录以获取个性化推荐');
+    data.filmData = [];
+    data.total = 0;
+    data.loading = false;
+    return;
+  }
+  
+  request.get(`/api/recommendations/${userId}`).then(res => {
     if (res.code === '200') {
-      data.filmData = res.data.list
-      data.total = res.data.total
+      data.filmData = res.data;
+      data.total = res.data.length;
     } else {
-      ElMessage.error(res.msg)
+      ElMessage.error(res.msg);
+      data.filmData = [];
+      data.total = 0;
     }
+  }).catch(error => {
+    ElMessage.error('加载推荐电影失败');
+    console.error(error);
+    data.filmData = [];
+    data.total = 0;
   }).finally(() => {
     data.loading = false;
-  })
+  });
 }
 
 const loadType = () => {
@@ -197,13 +284,7 @@ const resetFilters = () => {
   data.areaFlag = null;
   data.yearFlag = null;
   data.pageNum = 1;
-  load();
 }
-
-loadType()
-loadArea()
-loadYear()
-load()
 </script>
 
 <style scoped>
@@ -223,6 +304,44 @@ load()
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+/* 分类标签样式 */
+.category-tabs {
+  display: flex;
+  margin-bottom: 30px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.category-tab {
+  padding: 12px 24px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 8px;
+  text-align: center;
+}
+
+.category-tab:hover {
+  color: #2d98f3;
+  background: rgba(45, 152, 243, 0.08);
+}
+
+.active-tab {
+  background: #2d98f3;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(45, 152, 243, 0.25);
+}
+
+.active-tab:hover {
+  color: #fff;
+  background: #2d98f3;
 }
 
 .filter-section {
@@ -433,6 +552,24 @@ load()
   
   .movie-poster img {
     height: 280px;
+  }
+  
+  .category-tab {
+    padding: 10px 20px;
+    font-size: 15px;
+  }
+}
+
+@media screen and (max-width: 992px) {
+  .category-tabs {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .category-tab {
+    padding: 8px 16px;
+    font-size: 14px;
+    flex-grow: 1;
   }
 }
 

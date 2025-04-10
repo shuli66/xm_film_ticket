@@ -41,11 +41,26 @@
                 <span>{{ data.scoreFlag ? '已评分' : '评分' }}</span>
               </el-button>
             </div>
-            <el-button class="buy-ticket-btn" @click="$router.push('/front/filmCinema?id=' + data.filmData.id)">
+            <el-button 
+              v-if="data.filmData.status === '已上映'" 
+              class="buy-ticket-btn" 
+              @click="$router.push('/front/filmCinema?id=' + data.filmData.id)">
               特惠购票
-              </el-button>
-            </div>
+            </el-button>
+            <el-button 
+              v-else-if="data.filmData.status === '待上映'" 
+              class="coming-soon-btn" 
+              @click="showComingSoonAlert">
+              即将上映
+            </el-button>
+            <el-button 
+              v-else 
+              class="ended-btn" 
+              disabled>
+              已下映
+            </el-button>
           </div>
+        </div>
         <div class="film-stats">
           <div class="stat-item">
             <div class="stat-label">影片口碑</div>
@@ -141,7 +156,7 @@
             </div>
           </div>
         </div>
-          </div>
+        </div>
 
         <!-- 票房信息 -->
         <div class="content-section">
@@ -158,18 +173,76 @@
             <div class="box-office-item">
               <div class="box-office-value">{{ (data.filmData.total * 1).toFixed(2) }}</div>
               <div class="box-office-label">总票房（元）</div>
+          </div>
+        </div>
         </div>
       </div>
+
+      <!-- 右侧内容区 -->
+      <div class="sidebar">
+        <!-- 预告视频 -->
+        <div class="sidebar-section">
+          <h2 class="section-title">预告视频</h2>
+          <div class="trailer-list" v-if="data.videoData && data.videoData.length > 0">
+            <div v-for="item in data.videoData" :key="item.id" class="trailer-item" @click="viewInit(item)">
+              <div class="trailer-thumbnail">
+                <img :src="item.img" :alt="item.name">
+                <div class="play-icon">
+                  <el-icon><VideoPlay /></el-icon>
+                </div>
+              </div>
+              <div class="trailer-info">
+                <div class="trailer-title line2">{{ item.name }}</div>
+                <div class="trailer-time">{{ item.time }}</div>
+              </div>
+            </div>
           </div>
+          <div class="empty-state" v-else>暂无预告片</div>
+        </div>
 
         <!-- 用户评论 -->
-        <div class="content-section">
-          <h2 class="section-title">用户评论</h2>
+        <div class="sidebar-section">
+          <h2 class="section-title">
+            <span>用户评论</span>
+            <span class="comment-count" v-if="data.commentData.length > 0">({{ data.commentData.length }})</span>
+          </h2>
+          
+          <!-- 添加评论区 -->
+          <div class="comment-form">
+            <div class="comment-form-header">
+              <el-avatar :size="40" :src="data.user.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"></el-avatar>
+              <div class="comment-form-info">
+                <span class="comment-form-username">{{ data.user.username || '游客' }}</span>
+                <span class="comment-form-tip">分享你的观影感受</span>
+              </div>
+            </div>
+            <el-input
+                v-model="data.newComment"
+                type="textarea"
+                :rows="3"
+                placeholder="说说你对这部电影的看法..."
+                :disabled="data.isCommenting"
+            />
+            <div class="comment-form-footer">
+              <span class="comment-tips">文明评论，理性发言</span>
+              <el-button
+                  type="primary"
+                  :loading="data.isCommenting"
+                  @click="submitComment"
+                  class="submit-comment-btn"
+                  :disabled="!data.user.id"
+              >
+                {{ data.user.id ? '发布评论' : '请先登录' }}
+              </el-button>
+            </div>
+          </div>
+          
+          <!-- 评论列表 -->
           <div class="comments-section">
             <div v-if="data.commentData.length > 0" class="comments-list">
               <div v-for="(comment, index) in data.commentData" :key="index" class="comment-item">
                 <div class="comment-header">
-                  <img :src="comment.userAvatar" :alt="comment.userName" class="comment-avatar">
+                  <img :src="comment.userAvatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" :alt="comment.userName" class="comment-avatar">
                   <div class="comment-user">
                     <span class="user-name">{{ comment.userName }}</span>
                     <span class="comment-time">{{ formatTime(comment.createTime) }}</span>
@@ -182,49 +255,17 @@
                   </div>
                 </div>
                 <div class="comment-content">{{ comment.commentText }}</div>
-              </div>
-        </div>
-            <div v-else class="empty-state">暂无评论</div>
-
-            <div class="comment-form">
-          <el-input
-              v-model="data.newComment"
-              type="textarea"
-                :rows="4"
-                placeholder="请输入评论"
-              :disabled="data.isCommenting"
-              />
-          <el-button
-              type="primary"
-              :loading="data.isCommenting"
-              @click="submitComment"
-                class="submit-comment-btn"
-              >
-                提交评论
-              </el-button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 预告视频 -->
-      <div class="sidebar">
-        <h2 class="section-title">预告视频</h2>
-        <div class="trailer-list" v-if="data.videoData && data.videoData.length > 0">
-          <div v-for="item in data.videoData" :key="item.id" class="trailer-item" @click="viewInit(item)">
-            <div class="trailer-thumbnail">
-              <img :src="item.img" :alt="item.name">
-              <div class="play-icon">
-                <el-icon><VideoPlay /></el-icon>
+                <div class="comment-footer">
+                  <el-button type="text" class="comment-like-btn">
+                    <el-icon><ThumbsUp /></el-icon>
+                    <span>有用</span>
+                  </el-button>
+                </div>
               </div>
             </div>
-            <div class="trailer-info">
-              <div class="trailer-title line2">{{ item.name }}</div>
-              <div class="trailer-time">{{ item.time }}</div>
-            </div>
+            <div v-else class="empty-state">暂无评论，快来发表第一条评论吧！</div>
           </div>
         </div>
-        <div class="empty-state" v-else>暂无预告片</div>
       </div>
     </div>
 
@@ -487,6 +528,15 @@ const loadCollect = () => {
     }
   })
 }
+const showComingSoonAlert = () => {
+  ElMessage({
+    message: `该影片将于 ${data.filmData.start} 上映，敬请期待！`,
+    type: 'info',
+    duration: 3000,
+    showClose: true,
+    center: true
+  });
+}
 const collect = () => {
   let collectData = {
     userId: data.user.id,
@@ -722,21 +772,54 @@ loadCollect()
 }
 
 .buy-ticket-btn {
-  height: 40px;
-  background: #ef4238;
-  border: none;
-  color: #fff;
+  width: 160px;
+  height: 44px;
+  border-radius: 22px;
   font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(45deg, #ff6b6b, #ff9a8b);
+  color: #fff;
+  border: none;
+  box-shadow: 0 6px 16px rgba(255, 107, 107, 0.4);
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .buy-ticket-btn:hover {
-  background: #d63a31;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(239, 66, 56, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(255, 107, 107, 0.5);
+}
+
+/* 即将上映按钮样式 */
+.coming-soon-btn {
+  width: 160px;
+  height: 44px;
+  border-radius: 22px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(45deg, #ffa502, #ffb142);
+  color: #fff;
+  border: none;
+  box-shadow: 0 6px 16px rgba(255, 165, 2, 0.4);
+  transition: all 0.3s ease;
+}
+
+.coming-soon-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(255, 165, 2, 0.5);
+}
+
+/* 已下映按钮样式 */
+.ended-btn {
+  width: 160px;
+  height: 44px;
+  border-radius: 22px;
+  font-size: 16px;
+  font-weight: 600;
+  background: linear-gradient(45deg, #a5b1c2, #d1d8e0);
+  color: #fff;
+  border: none;
+  box-shadow: 0 6px 16px rgba(165, 177, 194, 0.4);
+  opacity: 0.9;
 }
 
 .film-stats {
@@ -812,18 +895,21 @@ loadCollect()
 
 /* 内容区域样式 */
 .film-content {
-  width: 75%;
-  margin: 40px auto;
+  width: 80%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 0;
   display: flex;
   gap: 40px;
 }
 
 .main-content {
-  flex: 1;
+  flex: 3;
 }
 
 .sidebar {
-  width: 320px;
+  flex: 2;
+  position: relative;
 }
 
 .content-section {
@@ -841,13 +927,23 @@ loadCollect()
 }
 
 .section-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   color: #333;
   margin-bottom: 20px;
   padding-left: 12px;
   border-left: 4px solid #ef4238;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.comment-count {
+  font-size: 14px;
+  color: #666;
+  font-weight: normal;
+  margin-left: 8px;
 }
 
 .section-title::after {
@@ -861,6 +957,7 @@ loadCollect()
   transition: width 0.3s ease;
 }
 
+.sidebar-section:hover .section-title::after,
 .content-section:hover .section-title::after {
   width: 60px;
 }
@@ -1012,30 +1109,40 @@ loadCollect()
 
 /* 评论样式 */
 .comments-section {
-  margin-top: 20px;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 5px;
+  margin-top: 25px;
 }
 
 .comment-item {
+  background: #f8f9fa;
+  border-radius: 10px;
   padding: 20px;
-  border-bottom: 1px solid #eee;
+  margin-bottom: 15px;
   transition: all 0.3s ease;
+  border-left: 3px solid transparent;
 }
 
 .comment-item:hover {
-  background: #f8f9fa;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-left-color: #ef4238;
 }
 
 .comment-header {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .comment-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  object-fit: cover;
   margin-right: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;
 }
 
@@ -1058,32 +1165,34 @@ loadCollect()
   color: #999;
 }
 
+.comment-actions {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.comment-item:hover .comment-actions {
+  opacity: 1;
+}
+
 .comment-content {
   color: #333;
   line-height: 1.6;
+  margin-bottom: 15px;
+  word-break: break-word;
 }
 
-.comment-form {
-  margin-top: 30px;
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
+.comment-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.comment-like-btn {
+  color: #999;
   transition: all 0.3s ease;
 }
 
-.comment-form:hover {
-  background: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.submit-comment-btn {
-  margin-top: 15px;
-  transition: all 0.3s ease;
-}
-
-.submit-comment-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.comment-like-btn:hover {
+  color: #ef4238;
 }
 
 /* 预告视频样式 */
@@ -1240,33 +1349,29 @@ loadCollect()
 @media (max-width: 992px) {
   .film-header-content {
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    width: 95%;
+    padding: 30px 0;
   }
 
-  .film-info {
+  .film-poster {
+    margin: 0 auto 20px;
+  }
+
+  .film-stats {
     margin-top: 20px;
-  }
-
-  .film-types {
-    justify-content: center;
-  }
-
-  .film-details {
-    justify-content: center;
-  }
-
-  .film-actions {
-    margin-top: 20px;
+    display: flex;
+    gap: 20px;
   }
 
   .film-content {
     flex-direction: column;
-    width: 95%;
+  }
+
+  .main-content {
+    order: 1;
   }
 
   .sidebar {
+    order: 2;
     width: 100%;
   }
 }
@@ -1274,21 +1379,170 @@ loadCollect()
 @media (max-width: 768px) {
   .film-header-content,
   .film-content {
-    width: 100%;
-    padding: 0 20px;
+    width: 95%;
+    padding: 20px 0;
+  }
+
+  .film-title {
+    font-size: 24px;
   }
 
   .film-poster {
-    width: 200px;
-    height: 280px;
+    width: 180px;
+    height: 240px;
   }
 
-  .info-grid {
-    grid-template-columns: 1fr;
+  .section-title {
+    font-size: 20px;
   }
 
+  .film-stats {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .info-grid,
   .box-office-grid {
     grid-template-columns: 1fr;
   }
+
+  .comment-form-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .comment-tips {
+    margin-bottom: 10px;
+  }
+
+  .comment-header {
+    flex-wrap: wrap;
+  }
+
+  .comment-actions {
+    margin-top: 10px;
+    width: 100%;
+    opacity: 1;
+  }
+
+  .content-section,
+  .sidebar-section {
+    padding: 20px 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .film-poster {
+    width: 150px;
+    height: 200px;
+  }
+
+  .action-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .action-btn,
+  .buy-ticket-btn,
+  .coming-soon-btn,
+  .ended-btn {
+    width: 100%;
+  }
+}
+
+/* 侧边栏区域样式 */
+.sidebar-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.sidebar-section:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* 评论表单样式 */
+.comment-form {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  transition: all 0.3s ease;
+}
+
+.comment-form:hover {
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.comment-form-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.comment-form-info {
+  margin-left: 12px;
+}
+
+.comment-form-username {
+  font-weight: 600;
+  color: #333;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.comment-form-tip {
+  font-size: 12px;
+  color: #999;
+}
+
+.comment-form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+}
+
+.comment-tips {
+  font-size: 12px;
+  color: #999;
+}
+
+.submit-comment-btn {
+  border-radius: 20px;
+  font-weight: 600;
+  background: linear-gradient(45deg, #ef4238, #ff6b6b);
+  border: none;
+  padding: 8px 20px;
+  transition: all 0.3s ease;
+}
+
+.submit-comment-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 66, 56, 0.3);
+}
+
+/* 美化滚动条 */
+.comments-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.comments-section::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.comments-section::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.comments-section::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
 }
 </style>

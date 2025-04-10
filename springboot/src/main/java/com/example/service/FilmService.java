@@ -2,6 +2,7 @@ package com.example.service;
 
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.json.JSONUtil;
+import cn.hutool.core.date.DateUtil;
 import com.example.entity.Actor;
 import com.example.entity.Area;
 import com.example.entity.Film;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.LocalDate;
 
 /**
  * 电影信息业务层方法
@@ -36,11 +38,17 @@ public class FilmService {
     private ActorMapper actorMapper;
 
     public void add(Film film) {
+        // 自动设置电影状态
+        setFilmStatus(film);
+        
         film.setTypeIds(JSONUtil.toJsonStr(film.getIds()));
         filmMapper.insert(film);
     }
 
     public void updateById(Film film) {
+        // 自动设置电影状态
+        setFilmStatus(film);
+        
         film.setTypeIds(JSONUtil.toJsonStr(film.getIds()));
         filmMapper.updateById(film);
     }
@@ -52,6 +60,32 @@ public class FilmService {
     public void deleteBatch(List<Integer> ids) {
         for (Integer id : ids) {
             filmMapper.deleteById(id);
+        }
+    }
+
+    /**
+     * 自动更新电影状态
+     * 根据上映日期自动更新电影状态
+     * 注意：不会改变已经设置为"停止上映"的电影状态
+     */
+    public void autoUpdateFilmStatus() {
+        List<Film> films = filmMapper.selectAll(new Film());
+        String currentDate = DateUtil.today();
+        
+        for (Film film : films) {
+            // 如果电影已经是"停止上映"状态，则不做改变
+            if ("停止上映".equals(film.getStatus())) {
+                continue;
+            }
+            
+            String startDate = film.getStart();
+            if (startDate != null) {
+                // 如果当前日期大于等于上映日期，且状态为"待上映"，则更新为"已上映"
+                if (currentDate.compareTo(startDate) >= 0 && "待上映".equals(film.getStatus())) {
+                    film.setStatus("已上映");
+                    filmMapper.updateById(film);
+                }
+            }
         }
     }
 
@@ -141,5 +175,36 @@ public class FilmService {
 
     public List<Film> getFilmsByCategory(Integer key) {
         return filmMapper.getFilmsByCategory(key);
+    }
+
+    /**
+     * 根据电影上映日期自动设置状态
+     * 如果已经是"停止上映"状态，则保持不变
+     */
+    private void setFilmStatus(Film film) {
+        // 如果是修改操作且状态已经是"停止上映"，则保持状态不变
+        if (film.getId() != null) {
+            Film existingFilm = filmMapper.selectById(film.getId());
+            if (existingFilm != null && "停止上映".equals(existingFilm.getStatus())) {
+                film.setStatus("停止上映");
+                return;
+            }
+        }
+        
+        // 如果管理员手动设置为"停止上映"，则保持状态不变
+        if ("停止上映".equals(film.getStatus())) {
+            return;
+        }
+        
+        // 根据上映日期自动设置状态
+        String startDate = film.getStart();
+        if (startDate != null) {
+            String currentDate = DateUtil.today();
+            if (currentDate.compareTo(startDate) >= 0) {
+                film.setStatus("已上映");
+            } else {
+                film.setStatus("待上映");
+            }
+        }
     }
 }

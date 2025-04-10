@@ -39,6 +39,9 @@
             <if test="name != null">
                 name = #{name},
             </if>
+            <if test="cinemaId != null">
+                cinema_id = #{cinemaId},
+            </if>
         </set>
         where id = #{id}
     </update>

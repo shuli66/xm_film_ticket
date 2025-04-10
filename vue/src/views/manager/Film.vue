@@ -169,12 +169,15 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item prop="status" label="电影状态">
+        <el-form-item prop="status" label="电影状态" v-if="data.form.id">
           <el-radio-group v-model="data.form.status">
-            <el-radio-button label="待上映" value="待上映" />
-            <el-radio-button label="已上映" value="已上映" />
+            <el-radio-button v-if="isAllowedStatus('待上映')" label="待上映" value="待上映" />
+            <el-radio-button v-if="isAllowedStatus('已上映')" label="已上映" value="已上映" />
             <el-radio-button label="停止上映" value="停止上映" />
           </el-radio-group>
+          <div class="status-info" v-if="data.form.status !== '停止上映'">
+            <small>（当前状态由上映日期自动判断，仅可手动选择停止上映）</small>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -247,39 +250,48 @@ const load = () => {
   })
 }
 const handleAdd = () => {
-  data.form = {}
+  data.form = {
+    time: 90,
+    ids: []
+  }
   data.formVisible = true
+  loadType()
+  loadArea()
 }
 const handleEdit = (row) => {
   data.form = JSON.parse(JSON.stringify(row))
   data.formVisible = true
+  loadType()
+  loadArea()
 }
-const add = () => {
-  request.post('/film/add', data.form).then(res => {
-    if (res.code === '200') {
-      ElMessage.success('操作成功')
-      data.formVisible = false
-      load()
-    } else {
-      ElMessage.error(res.msg)
-    }
-  })
-}
-
-const update = () => {
-  request.put('/film/update', data.form).then(res => {
-    if (res.code === '200') {
-      ElMessage.success('操作成功')
-      data.formVisible = false
-      load()
-    }
-  })
-}
-
 const save = () => {
-  data.form.id ? update() : add()
+  let saveData = {...data.form};
+  if (!saveData.id) {
+    saveData.status = null;
+  }
+  
+  if (saveData.id) {
+    request.put('/film/update', saveData).then(res => {
+      if (res.code === '200') {
+        ElMessage.success('操作成功')
+        data.formVisible = false
+        load()
+      } else {
+        ElMessage.error(res.msg)
+      }
+    })
+  } else {
+    request.post('/film/add', saveData).then(res => {
+      if (res.code === '200') {
+        ElMessage.success('操作成功')
+        data.formVisible = false
+        load()
+      } else {
+        ElMessage.error(res.msg)
+      }
+    })
+  }
 }
-
 const del = (id) => {
   ElMessageBox.confirm('删除后数据无法恢复，您确定删除吗？', '删除确认', { type: 'warning' }).then(res => {
     request.delete('/film/delete/' + id).then(res => {
@@ -324,6 +336,25 @@ const reset = () => {
   data.title = null
   data.status = null
   load()
+}
+
+const isAllowedStatus = (status) => {
+  if (data.form.status === '停止上映') {
+    return false;
+  }
+  
+  const currentDate = new Date().toISOString().slice(0, 10);
+  const startDate = data.form.start;
+  
+  if (status === '待上映') {
+    return startDate > currentDate;
+  }
+  
+  if (status === '已上映') {
+    return startDate <= currentDate;
+  }
+  
+  return true;
 }
 
 load()

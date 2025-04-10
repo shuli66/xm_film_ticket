@@ -55,6 +55,9 @@
             <if test="roomId != null">
                 room_id = #{roomId},
             </if>
+            <if test="cinemaId != null">
+                cinema_id = #{cinemaId},
+            </if>
             <if test="time != null">
                 time = #{time},
             </if>
