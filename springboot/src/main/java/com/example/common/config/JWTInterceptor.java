@@ -42,7 +42,8 @@ public class JWTInterceptor implements HandlerInterceptor {
             requestURI.contains("/register") || 
             requestURI.contains("/user/resetPassword") ||
             requestURI.contains("/user/checkUsername") ||
-            requestURI.contains("/user/checkPhone")
+            requestURI.contains("/user/checkPhone") || requestURI.contains("/map")
+
 
         ) {
             return true;

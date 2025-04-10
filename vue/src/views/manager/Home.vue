@@ -1,34 +1,10 @@
 <template>
   <div class="container">
     <!-- 欢迎卡片 -->
-    <div class="welcome-card" :class="{ 'animate-in': showWelcome }">
+    <div class="welcome-card">
       <div class="welcome-message">
-        <div class="welcome-title">
-          <h1>您好，<span class="highlight">{{ data.user?.name }}</span>！</h1>
-          <div class="welcome-subtitle">
-            <p>欢迎使用本系统</p>
-            <div class="welcome-time">
-              <el-icon><Clock /></el-icon>
-              <span>{{ currentTime }}</span>
-            </div>
-          </div>
-        </div>
-        <div class="welcome-stats">
-          <div class="stat-item">
-            <el-icon><Document /></el-icon>
-            <div class="stat-info">
-              <span class="stat-value">{{ data.noticeData.length }}</span>
-              <span class="stat-label">系统公告</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <el-icon><User /></el-icon>
-            <div class="stat-info">
-              <span class="stat-value">{{ data.user?.role || '管理员' }}</span>
-              <span class="stat-label">用户角色</span>
-            </div>
-          </div>
-        </div>
+        <h1>您好，{{ data.user?.name }}！</h1>
+        <p>欢迎使用本系统！</p>
       </div>
     </div>
 
@@ -36,35 +12,17 @@
       <div class="announcement-section">
         <div class="announcement-header">
           <h2>系统公告</h2>
-          <div class="announcement-stats">
-            <el-tag type="info">共 {{ data.noticeData.length }} 条公告</el-tag>
-          </div>
         </div>
         <el-timeline class="timeline">
           <el-timeline-item
               v-for="(item, index) in data.noticeData"
               :key="index"
               :timestamp="item.time"
-              :type="getTimelineItemType(index)"
               class="announcement-item"
-              placement="top"
           >
-            <el-card class="announcement-box" :body-style="{ padding: '20px' }">
-              <div class="announcement-content">
-                <div class="announcement-title">
-                  <el-icon><Bell /></el-icon>
-                  <span>公告 #{{ data.noticeData.length - index }}</span>
-                </div>
-                <p class="announcement-text">{{ item.content }}</p>
-                <div class="announcement-footer">
-                  <span class="time">发布时间：{{ formatDate(item.time) }}</span>
-                  <el-button type="primary" size="small" @click="viewDetails(item)">
-                    查看详情
-                    <el-icon class="el-icon--right"><ArrowRight /></el-icon>
-                  </el-button>
-                </div>
-              </div>
-            </el-card>
+            <div class="announcement-box">
+              {{ item.content }}
+            </div>
           </el-timeline-item>
         </el-timeline>
       </div>
@@ -73,42 +31,14 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from "vue";
+import { reactive } from "vue";
 import request from "@/utils/request.js";
 import { ElMessage } from "element-plus";
-import { Bell, ArrowRight, Clock, Document, User } from '@element-plus/icons-vue'
-
-const showWelcome = ref(false)
-const currentTime = ref('')
 
 const data = reactive({
   user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
   noticeData: []
 })
-
-const getTimelineItemType = (index) => {
-  const types = ['primary', 'success', 'warning', 'danger']
-  return types[index % types.length]
-}
-
-const formatDate = (dateStr) => {
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-const viewDetails = (item) => {
-  ElMessage({
-    message: `查看公告详情: ${item.content}`,
-    type: 'info',
-    duration: 2000
-  })
-}
 
 const loadNotice = () => {
   request.get('/notice/selectAll').then(res => {
@@ -119,32 +49,6 @@ const loadNotice = () => {
     }
   })
 }
-
-// 更新时间
-const updateTime = () => {
-  const now = new Date()
-  currentTime.value = now.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  })
-}
-
-onMounted(() => {
-  // 显示欢迎动画
-  setTimeout(() => {
-    showWelcome.value = true
-  }, 100)
-  
-  // 更新时间
-  updateTime()
-  setInterval(updateTime, 1000)
-})
-
 loadNotice()
 </script>
 
@@ -162,157 +66,27 @@ loadNotice()
 
 /* 欢迎卡片样式 */
 .welcome-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  padding: 40px;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  margin-bottom: 40px;
+  background-color: #ffffff;
+  padding: 40px; /* 增加内边距 */
+  border-radius: 15px; /* 更圆的边角 */
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); /* 更明显的阴影 */
+  text-align: center;
+  margin-bottom: 40px; /* 增加底部间距 */
   width: 100%;
-  max-width: 1000px;
-  transform: translateY(20px);
-  opacity: 0;
-  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 900px; /* 增加最大宽度 */
 }
 
-.welcome-card.animate-in {
-  transform: translateY(0);
-  opacity: 1;
-}
-
-.welcome-message {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 40px;
-}
-
-.welcome-title {
-  flex: 1;
-}
-
-.welcome-title h1 {
-  font-size: 36px;
-  font-weight: 700;
-  color: #2c3e50;
+.welcome-message h1 {
+  font-size: 32px; /* 增加字体大小 */
+  font-weight: 700; /* 更加醒目的字体 */
+  color: #333;
   margin: 0;
-  line-height: 1.2;
 }
 
-.highlight {
-  color: #409EFF;
-  position: relative;
-  display: inline-block;
-}
-
-.highlight::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg, #409EFF, #36cfc9);
-  border-radius: 2px;
-  animation: highlight-pulse 2s infinite;
-}
-
-@keyframes highlight-pulse {
-  0% { opacity: 0.5; }
-  50% { opacity: 1; }
-  100% { opacity: 0.5; }
-}
-
-.welcome-subtitle {
+.welcome-message p {
+  font-size: 20px; /* 增加字体大小 */
   margin-top: 15px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.welcome-subtitle p {
-  font-size: 18px;
-  color: #606266;
-  margin: 0;
-}
-
-.welcome-time {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #909399;
-  font-size: 14px;
-}
-
-.welcome-stats {
-  display: flex;
-  gap: 30px;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 15px 20px;
-  background: #f5f7fa;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-
-.stat-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.stat-item .el-icon {
-  font-size: 24px;
-  color: #409EFF;
-}
-
-.stat-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: #909399;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .welcome-card {
-    padding: 30px;
-  }
-
-  .welcome-message {
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .welcome-title h1 {
-    font-size: 28px;
-  }
-
-  .welcome-subtitle {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .welcome-stats {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .stat-item {
-    padding: 12px 15px;
-  }
+  color: #666;
 }
 
 /* 内容部分布局 */
@@ -325,122 +99,83 @@ loadNotice()
 
 .announcement-section {
   width: 100%;
-  max-width: 1000px;
+  max-width: 900px; /* 增加最大宽度 */
   background: #ffffff;
-  border-radius: 15px;
-  padding: 30px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-}
-
-.announcement-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid #eaeaea;
+  border-radius: 15px; /* 更圆的边角 */
+  padding: 40px; /* 增加内边距 */
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); /* 更明显的阴影 */
 }
 
 .announcement-header h2 {
-  font-size: 24px;
-  color: #2c3e50;
-  font-weight: 600;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  font-size: 28px; /* 增加字体大小 */
+  color: #007bff;
+  font-weight: 700; /* 更加醒目的字体 */
+  margin-bottom: 25px; /* 增加底部间距 */
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 12px; /* 增加底部内边距 */
 }
 
-.announcement-stats {
+/* 每个公告的框样式 */
+.announcement-item {
   display: flex;
-  gap: 10px;
+  justify-content: flex-start; /* 设置左对齐 */
 }
 
 .announcement-box {
-  margin-bottom: 20px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background-color: #ffffff;
+  border: 2px solid #e2e6ea;
+  border-radius: 10px; /* 更圆的边角 */
+  padding: 25px; /* 增加内边距 */
+  margin-bottom: 20px; /* 增加底部间距 */
+  width: 100%;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); /* 更加明显的阴影 */
+  font-size: 18px; /* 增加字体大小 */
+  color: #444;
+  transition: transform 0.3s, box-shadow 0.3s; /* 增加动画效果 */
 }
 
+/* 鼠标悬停效果 */
 .announcement-box:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px); /* 鼠标悬停时稍微抬升 */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25); /* 增加阴影 */
 }
 
-.announcement-content {
+/* 时间线样式 */
+.timeline .el-timeline-item {
   position: relative;
+  padding-left: 50px; /* 增加左侧内边距 */
 }
 
-.announcement-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #2c3e50;
+.timeline .el-timeline-item .el-timeline-item-tail {
+  border-left: 4px solid #007bff;
 }
 
-.announcement-text {
-  font-size: 15px;
-  line-height: 1.6;
-  color: #5c6c7c;
-  margin: 12px 0;
+.timeline .el-timeline-item .el-timeline-item-content {
+  font-size: 18px; /* 增加字体大小 */
+  color: #444;
 }
 
-.announcement-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+.timeline .el-timeline-item .el-timeline-item-time {
+  font-size: 16px; /* 增加字体大小 */
+  color: #aaa;
 }
 
-.time {
-  font-size: 14px;
-  color: #909399;
-}
-
-.timeline {
-  padding: 20px 0;
-}
-
-.timeline :deep(.el-timeline-item__node) {
-  width: 16px;
-  height: 16px;
-}
-
-.timeline :deep(.el-timeline-item__tail) {
-  border-left: 2px solid #e4e7ed;
-}
-
-.timeline :deep(.el-card__body) {
-  padding: 20px;
-}
-
-/* 响应式设计优化 */
+/* 响应式设计 */
 @media (max-width: 768px) {
+  .container {
+    padding: 30px; /* 减少内边距 */
+  }
+
+  .welcome-card {
+    padding: 25px; /* 减少内边距 */
+  }
+
   .announcement-section {
-    padding: 20px;
+    padding: 25px; /* 减少内边距 */
   }
 
-  .announcement-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .announcement-footer {
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
-  }
-
-  .announcement-text {
-    font-size: 14px;
+  .announcement-header h2 {
+    font-size: 24px; /* 减少字体大小 */
   }
 }
 </style>

@@ -140,6 +140,9 @@
               <template #prepend>
                 <div class="input-label required">地址</div>
               </template>
+              <template #append>
+                <el-button @click="showMapDialog = true">地图选择</el-button>
+              </template>
             </el-input>
           </el-form-item>
           <el-form-item prop="leader">
@@ -217,6 +220,34 @@
       </el-form>
     </div>
   </div>
+
+  <!-- 地图选择对话框 -->
+  <el-dialog
+    v-model="showMapDialog"
+    title="选择影院位置"
+    width="800px"
+    destroy-on-close
+  >
+    <div class="map-container">
+      <p class="map-tip">请在地图上搜索或点击选择您影院的准确位置</p>
+      <BaiduMap
+        ref="mapRef"
+        :height="500"
+        :selectable="true"
+        @select-address="handleSelectAddress"
+      />
+    </div>
+    <div v-if="selectedLocation" class="selected-location">
+      <p><strong>已选位置：</strong>{{ selectedLocation.title }}</p>
+      <p><strong>详细地址：</strong>{{ selectedLocation.address }}</p>
+    </div>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="showMapDialog = false">取消</el-button>
+        <el-button type="primary" @click="confirmLocation">确认选择</el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -225,6 +256,7 @@ import { User, Lock, Phone, Message, Avatar, Location, Document, Plus } from "@e
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
 import router from "@/router/index.js";
+import BaiduMap from '@/components/BaiduMap.vue';
 
 const baseUrl = import.meta.env.VITE_BASE_URL;
 
@@ -235,6 +267,11 @@ const certificateFileList = ref([]);
 
 // 角色选择
 const selectedRole = ref('USER');
+
+// 地图相关
+const showMapDialog = ref(false);
+const mapRef = ref(null);
+const selectedLocation = ref(null);
 
 // 监听角色变化，重置表单
 watch(selectedRole, (newVal) => {
@@ -458,6 +495,32 @@ const register = () => {
     }
   })
 }
+
+// 处理地图选择的地址
+const handleSelectAddress = (address) => {
+  selectedLocation.value = address;
+};
+
+// 确认选择的地址
+const confirmLocation = () => {
+  if (selectedLocation.value) {
+    data.form.address = selectedLocation.value.address;
+    // 不再存储经纬度信息
+    showMapDialog.value = false;
+  } else {
+    ElMessage.warning('请先在地图上选择位置');
+  }
+};
+
+// 在打开地图对话框时，如果已有地址，则自动搜索
+watch(showMapDialog, (val) => {
+  if (val && data.form.address && mapRef.value) {
+    // 延迟一点时间确保地图已加载
+    setTimeout(() => {
+      mapRef.value.search(data.form.address);
+    }, 500);
+  }
+});
 </script>
 
 <style scoped>
@@ -547,5 +610,27 @@ const register = () => {
   font-size: 14px;
   color: #606266;
   margin-bottom: 8px;
+}
+
+.map-container {
+  width: 100%;
+}
+
+.map-tip {
+  margin-bottom: 10px;
+  color: #606266;
+  font-size: 14px;
+}
+
+.selected-location {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+}
+
+.selected-location p {
+  margin: 5px 0;
+  font-size: 14px;
 }
 </style>

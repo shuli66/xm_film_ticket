@@ -95,7 +95,7 @@
 
               <!-- 显示退票按钮（仅在待取票状态下） -->
               <el-button
-                  v-else-if="scope.row.status === '待取票'"
+                  v-if="scope.row.status === '待取票'"
                   type="danger"
                   @click="cancel(scope.row.id)"
               >
