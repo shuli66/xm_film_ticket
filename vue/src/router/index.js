@@ -59,6 +59,7 @@ const router = createRouter({
 
 // 防止重复提示
 let hasLoginTip = false;
+let isRedirectingToLogin = false;
 
 // 全局路由守卫，检查用户登录状态
 router.beforeEach((to, from, next) => {
@@ -66,6 +67,7 @@ router.beforeEach((to, from, next) => {
   if (to.path === '/login' || to.path === '/register' || to.path === '/404') {
     // 重置提示标记
     hasLoginTip = false;
+    isRedirectingToLogin = false;
     next();
     return;
   }
@@ -77,15 +79,22 @@ router.beforeEach((to, from, next) => {
   
   // 需要登录但未登录
   if (to.meta.requiresAuth && !isLoggedIn) {
-    if (!hasLoginTip) {
+    if (!hasLoginTip && !isRedirectingToLogin) {
       console.warn("需要登录权限，跳转到登录页");
       hasLoginTip = true;
+      isRedirectingToLogin = true;
+      
       // 2秒后重置提示标记
       setTimeout(() => {
         hasLoginTip = false;
+        isRedirectingToLogin = false;
       }, 2000);
+      
+      next('/login');
+    } else {
+      // 如果已经在处理跳转，不触发新的跳转
+      next(false);
     }
-    next('/login');
   } else {
     // 已登录或不需要登录权限
     next();

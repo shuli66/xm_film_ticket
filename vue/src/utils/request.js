@@ -36,11 +36,24 @@ request.interceptors.request.use(config => {
     
     // 如果用户未登录且请求需要token
     if (!user || !user.token) {
-        // 对于需要登录的请求，如果用户未登录，可以取消请求
-        if (router.currentRoute.value.meta.requiresAuth) {
-            // 取消无意义的API请求，减少后端压力
-            return Promise.reject('未登录状态，请求已取消');
+        // 如果已经在重定向到登录页面，则不再重复处理
+        if (isRedirecting) {
+            return Promise.reject('正在跳转到登录页，请求已取消');
         }
+        
+        // 对于任何需要token的API请求，如果未登录，直接跳转到登录页
+        if (!isRedirecting && router.currentRoute.value.path !== '/login') {
+            isRedirecting = true;
+            router.push('/login');
+            
+            // 延时恢复标志位，避免多次跳转
+            setTimeout(() => {
+                isRedirecting = false;
+            }, 2000);
+        }
+        
+        // 取消无意义的API请求，减少后端压力
+        return Promise.reject('未登录状态，请求已取消');
     } else {
         // 用户已登录，添加token
         config.headers['token'] = user.token;
@@ -94,7 +107,10 @@ request.interceptors.response.use(
     },
     error => {
         // 判断是否是主动取消的请求（未登录状态取消的请求）
-        if (axios.isCancel(error) || error === '未登录状态，请求已取消' || error === 'token已失效，请求已取消') {
+        if (axios.isCancel(error) || 
+            error === '未登录状态，请求已取消' || 
+            error === 'token已失效，请求已取消' ||
+            error === '正在跳转到登录页，请求已取消') {
             console.log('请求被取消:', error);
             return Promise.reject(error);
         }
