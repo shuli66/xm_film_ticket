@@ -20,7 +20,7 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item @click="router.push('/manager/person')">个人资料</el-dropdown-item>
-              <el-dropdown-item @click="router.push('/manager/certificate')">资质认证</el-dropdown-item>
+              <el-dropdown-item @click="router.push('/manager/certificate')" v-if="data.user.role === 'CINEMA'">资质认证</el-dropdown-item>
               <el-dropdown-item @click="router.push('/manager/password')">修改密码</el-dropdown-item>
               <el-dropdown-item @click="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>

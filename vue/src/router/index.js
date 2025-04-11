@@ -22,7 +22,7 @@ const router = createRouter({
         { path: 'film', meta: { name: '电影信息', requiresAuth: true }, component: () => import('@/views/manager/Film.vue') },
         { path: 'actor', meta: { name: '演职人员', requiresAuth: true }, component: () => import('@/views/manager/Actor.vue') },
         { path: 'video', meta: { name: '预告视频', requiresAuth: true }, component: () => import('@/views/manager/Video.vue') },
-        { path: 'certificate', meta: { name: '资质认证', requiresAuth: true }, component: () => import('@/views/manager/Certificate.vue') },
+        { path: 'certificate', meta: { name: '资质认证', requiresAuth: true, roles: ['CINEMA'] }, component: () => import('@/views/manager/Certificate.vue') },
         { path: 'room', meta: { name: '影厅房间', requiresAuth: true }, component: () => import('@/views/manager/Room.vue') },
         { path: 'show', meta: { name: '放映记录', requiresAuth: true }, component: () => import('@/views/manager/Show.vue') },
         { path: 'orders', meta: { name: '购票订单', requiresAuth: true }, component: () => import('@/views/manager/Orders.vue') },
@@ -96,6 +96,16 @@ router.beforeEach((to, from, next) => {
       next(false);
     }
   } else {
+    // 已登录且需要检查角色权限
+    if (to.meta.roles && isLoggedIn) {
+      // 检查用户角色是否满足访问要求
+      const hasPermission = to.meta.roles.includes(user.role);
+      if (!hasPermission) {
+        console.warn("没有访问权限");
+        next('/404');
+        return;
+      }
+    }
     // 已登录或不需要登录权限
     next();
   }

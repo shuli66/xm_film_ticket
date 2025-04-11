@@ -12,7 +12,9 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -101,14 +103,24 @@ public class FilmShowService {
         filmShow.setFilmId(filmId);
         List<FilmShow> filmShows = filmShowMapper.selectAll(filmShow);
         List<FilmShow> collect = filmShows.stream().filter(x -> "购票中".equals(x.getStatus())).collect(Collectors.toList());
-        List<Cinema> list = new ArrayList<>();
+        
+        // 使用Map进行去重，以cinemaId为Key
+        Map<Integer, Cinema> uniqueCinemas = new HashMap<>();
+        
         for (FilmShow show : collect) {
+            // 如果该影院ID已在Map中，跳过
+            if (uniqueCinemas.containsKey(show.getCinemaId())) {
+                continue;
+            }
+            
             Cinema cinema = cinemaMapper.selectById(show.getCinemaId());
             if (ObjectUtil.isNotEmpty(cinema)) {
-                list.add(cinema);
+                uniqueCinemas.put(cinema.getId(), cinema);
             }
         }
-        return list;
+        
+        // 返回去重后的影院列表
+        return new ArrayList<>(uniqueCinemas.values());
     }
 
     public List<Film> selectByCinemaId(Integer cinemaId) {
@@ -116,8 +128,16 @@ public class FilmShowService {
         filmShow.setCinemaId(cinemaId);
         List<FilmShow> filmShows = filmShowMapper.selectAll(filmShow);
         List<FilmShow> collect = filmShows.stream().filter(x -> "购票中".equals(x.getStatus())).collect(Collectors.toList());
-        List<Film> list = new ArrayList<>();
+        
+        // 使用Map进行去重，以filmId为Key
+        Map<Integer, Film> uniqueFilms = new HashMap<>();
+        
         for (FilmShow show : collect) {
+            // 如果该电影ID已在Map中，跳过
+            if (uniqueFilms.containsKey(show.getFilmId())) {
+                continue;
+            }
+            
             Film film = filmMapper.selectById(show.getFilmId());
             if (ObjectUtil.isNotEmpty(film)) {
                 List<String> tmpList = new ArrayList<>();
@@ -138,9 +158,11 @@ public class FilmShowService {
                 List<String> actors = actorList.stream().map(Actor::getName).collect(Collectors.toList());
                 film.setActors(actors);
 
-                list.add(film);
+                uniqueFilms.put(film.getId(), film);
             }
         }
-        return list;
+        
+        // 返回去重后的电影列表
+        return new ArrayList<>(uniqueFilms.values());
     }
 }

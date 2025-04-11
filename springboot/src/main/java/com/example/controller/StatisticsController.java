@@ -18,6 +18,7 @@ import com.example.service.TypeService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.*;
@@ -42,17 +43,46 @@ public class StatisticsController {
 
         List<Orders> orders = ordersService.selectAll(new Orders());
         double todayPrice = orders.stream()
-                .filter(x -> !"已退票".equals(x.getStatus()) && x.getCreateTime().contains(DateUtil.today()))
+                .filter(x -> !"已退票".equals(x.getStatus()) 
+                        && ("已取票".equals(x.getStatus()) || "待取票".equals(x.getStatus()))
+                        && x.getCreateTime().contains(DateUtil.today()))
                 .mapToDouble(Orders::getPrice)
                 .sum();
 
         double totalPrice = orders.stream()
-                .filter(x -> !"已退票".equals(x.getStatus()))
+                .filter(x -> !"已退票".equals(x.getStatus()) 
+                        && ("已取票".equals(x.getStatus()) || "待取票".equals(x.getStatus())))
                 .mapToDouble(Orders::getPrice)
                 .sum();
 
         map.put("filmNum", filmService.selectAll(new Film()).size());
         map.put("cinemaNum", cinemaService.selectAll(new Cinema()).size());
+        map.put("todayPrice", todayPrice);
+        map.put("totalPrice", totalPrice);
+        return Result.success(map);
+    }
+
+    @GetMapping("/cinemaBase")
+    public Result cinemaBase(@RequestParam Integer cinemaId) {
+        Map<String, Object> map = new HashMap<>();
+
+        Orders orderQuery = new Orders();
+        orderQuery.setCinemaId(cinemaId);
+        List<Orders> orders = ordersService.selectAll(orderQuery);
+        
+        double todayPrice = orders.stream()
+                .filter(x -> !"已退票".equals(x.getStatus()) 
+                        && ("已取票".equals(x.getStatus()) || "待取票".equals(x.getStatus()))
+                        && x.getCreateTime().contains(DateUtil.today()))
+                .mapToDouble(Orders::getPrice)
+                .sum();
+
+        double totalPrice = orders.stream()
+                .filter(x -> !"已退票".equals(x.getStatus()) 
+                        && ("已取票".equals(x.getStatus()) || "待取票".equals(x.getStatus())))
+                .mapToDouble(Orders::getPrice)
+                .sum();
+
         map.put("todayPrice", todayPrice);
         map.put("totalPrice", totalPrice);
         return Result.success(map);
@@ -71,7 +101,41 @@ public class StatisticsController {
         List<Orders> orders = ordersService.selectAll(new Orders());
         for (String day : xList) {
             double sum = orders.stream()
-                    .filter(x -> !"已退票".equals(x.getStatus()) && x.getCreateTime().contains(day))
+                    .filter(x -> !"已退票".equals(x.getStatus()) 
+                            && ("已取票".equals(x.getStatus()) || "待取票".equals(x.getStatus())) 
+                            && x.getCreateTime().contains(day))
+                    .mapToDouble(Orders::getPrice)
+                    .sum();
+            yList.add(sum);
+        }
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("xAxis", xList);
+        map.put("yAxis", yList);
+        return Result.success(map);
+    }
+
+    /**
+     * 根据影院ID获取该影院的票房趋势
+     */
+    @GetMapping("/cinemaLine")
+    public Result cinemaLine(@RequestParam Integer cinemaId) {
+        List<Double> yList = new ArrayList<>();
+
+        // 获取最近7天的数据（年-月-日）放在xList里
+        Date today = new Date();
+        DateTime start = DateUtil.offsetDay(today, -7);
+        List<String> xList = DateUtil.rangeToList(start, today, DateField.DAY_OF_YEAR).stream().map(DateUtil::formatDate).toList();
+
+        // 获取该影院上述天对应的票房放在yList
+        Orders orderQuery = new Orders();
+        orderQuery.setCinemaId(cinemaId);
+        List<Orders> orders = ordersService.selectAll(orderQuery);
+        for (String day : xList) {
+            double sum = orders.stream()
+                    .filter(x -> !"已退票".equals(x.getStatus()) 
+                            && ("已取票".equals(x.getStatus()) || "待取票".equals(x.getStatus())) 
+                            && x.getCreateTime().contains(day))
                     .mapToDouble(Orders::getPrice)
                     .sum();
             yList.add(sum);
@@ -89,7 +153,12 @@ public class StatisticsController {
         List<Double> yList = new ArrayList<>();
 
         List<Type> types = typeService.selectAll(new Type());
-        List<Orders> orders = ordersService.selectAll(new Orders()).stream().filter(x -> !"已退票".equals(x.getStatus())).collect(Collectors.toList());
+        List<Orders> orders = ordersService.selectAll(new Orders())
+                .stream()
+                .filter(x -> !"已退票".equals(x.getStatus()) 
+                        && ("已取票".equals(x.getStatus()) || "待取票".equals(x.getStatus())))
+                .collect(Collectors.toList());
+                
         for (Type type : types) {
             xList.add(type.getTitle());
             Double total = 0D;

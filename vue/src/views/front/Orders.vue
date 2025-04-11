@@ -1,5 +1,17 @@
 <template>
   <div style="width: 70%; margin: 20px auto" class="card">
+    <!-- 添加支付测试账号提示 -->
+    <el-alert
+      title="沙箱测试支付账号信息"
+      type="info"
+      :closable="false"
+      style="margin-bottom: 20px"
+    >
+      <div>买家账号：apvsnv2778@sandbox.com</div>
+      <div>登录密码：111111</div>
+      <div>支付密码：111111</div>
+    </el-alert>
+
     <div style="margin: 10px">
       <el-input v-model="data.orderNo" prefix-icon="Search" style="width: 240px; margin-right: 10px" placeholder="请输入订单编号查询"></el-input>
       <el-input v-model="data.cinemaName" prefix-icon="Search" style="width: 240px; margin-right: 10px" placeholder="请输入电影院名称查询"></el-input>

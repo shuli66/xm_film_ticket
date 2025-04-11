@@ -124,7 +124,7 @@ public class OrdersService {
         List<Orders> list = ordersMapper.selectAll(orders);
         // 只统计已支付的订单金额
         double sum = list.stream()
-                .filter(x -> "已取票".equals(x.getStatus()) && x.getCreateTime().contains(DateUtil.today()))
+                .filter(x -> ("已取票".equals(x.getStatus()) || "待取票".equals(x.getStatus())) && x.getCreateTime().contains(DateUtil.today()))
                 .mapToDouble(Orders::getPrice)
                 .sum();
 
@@ -139,7 +139,9 @@ public class OrdersService {
         orders.setFilmId(filmId);
         List<Orders> list = ordersMapper.selectAll(orders);
         return list.stream()
-                .filter(x -> !"已退票".equals(x.getStatus()) && x.getCreateTime().contains(DateUtil.today()))
+                .filter(x -> !"已退票".equals(x.getStatus()) 
+                        && ("已取票".equals(x.getStatus()) || "待取票".equals(x.getStatus()))
+                        && x.getCreateTime().contains(DateUtil.today()))
                 .mapToDouble(Orders::getPrice)
                 .sum();
     }
