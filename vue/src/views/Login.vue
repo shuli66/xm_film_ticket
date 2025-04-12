@@ -169,6 +169,10 @@ const login = () => {
           ElMessage.success('登录成功')
           // 存储用户信息到浏览器的缓存
           localStorage.setItem('xm-user', JSON.stringify(res.data))
+          
+          // 设置登录成功标记，用于触发系统公告显示
+          sessionStorage.setItem('just_logged_in', 'true')
+          
           setTimeout(() => {
             if (res.data.role === 'USER') {
               router.push('/front/home')

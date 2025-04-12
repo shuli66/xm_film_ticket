@@ -1,6 +1,91 @@
 <template>
   <div class="home-wrapper">
-    <SnowEffect />
+    <div class="snow-container">
+      <SnowEffect />
+    </div>
+    
+    <!-- 系统公告弹窗 -->
+    <el-dialog
+      v-model="data.noticeVisible"
+      destroy-on-close
+      :show-close="true"
+      center
+      width="750px"
+      custom-class="notice-popup-dialog"
+      append-to-body
+    >
+      <template #header>
+        <div class="notice-popup-header">
+          <div class="notice-popup-title">
+            <el-icon class="notice-icon"><Bell /></el-icon>
+            <span>系统公告</span>
+          </div>
+        </div>
+      </template>
+      
+      <div class="notice-popup-content" v-if="data.currentNotice">
+        <el-card 
+          class="notice-popup-card" 
+          :class="{'notice-card-important': data.currentNotice.important}"
+        >
+          <template #header>
+            <div class="notice-card-header">
+              <div class="notice-card-title">
+                <el-tag 
+                  v-if="data.currentNotice.important" 
+                  type="danger" 
+                  size="default" 
+                  effect="dark"
+                  class="notice-tag"
+                >
+                  重要
+                </el-tag>
+                <el-tag 
+                  type="success" 
+                  size="default" 
+                  effect="light"
+                  class="notice-tag"
+                >
+                  新
+                </el-tag>
+                <span class="title-text">{{ data.currentNotice.title || '系统公告' }}</span>
+              </div>
+              <div class="notice-card-meta">
+                <span class="notice-card-time">
+                  <el-icon><Clock /></el-icon>
+                  {{ formatTime(data.currentNotice.time) }}
+                </span>
+              </div>
+            </div>
+          </template>
+          <div class="notice-card-content">
+            <pre class="content-text">{{ data.currentNotice.content }}</pre>
+          </div>
+        </el-card>
+        
+        <!-- 动画装饰元素 -->
+        <div class="notice-decoration">
+          <div class="notice-decoration-circle circle-1"></div>
+          <div class="notice-decoration-circle circle-2"></div>
+          <div class="notice-decoration-circle circle-3"></div>
+        </div>
+      </div>
+      
+      <div class="notice-empty" v-else>
+        <el-empty description="暂无公告" />
+      </div>
+      
+      <template #footer>
+        <div class="notice-popup-footer">
+          <el-checkbox v-model="data.noticeNoShow" label="不再提示" @change="watchNoticeNoShow" />
+          <el-button type="primary" @click="closeNotice" class="close-btn">
+            关闭
+            <el-icon class="el-icon--right"><Close /></el-icon>
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+    
     <div class="home-container">
       <div class="main-content">
         <!-- 为你推荐 -->
@@ -135,24 +220,87 @@
 
 <script setup>
 import router from "@/router/index.js";
-import { reactive } from "vue";
+import { reactive, onMounted, onBeforeMount } from "vue";
 import request from "@/utils/request.js";
 import { ElMessage } from "element-plus";
+import { Calendar, Bell, Clock, Close } from '@element-plus/icons-vue'
 import SnowEffect from '@/components/SnowEffect.vue';
+import dayjs from 'dayjs'
 
 const data = reactive({
-  data1: [], // 已上映的电影
-  data2: [], // 待上映的电影
-  playingData: [], // 播放中的电影（最多显示8部）
-  noPlayData: [], // 待上映电影（最多显示8部）
+  data1: [], // 所有已上映的电影
+  data2: [], // 所有待上映的电影
+  playingData: [], // 首页热映推荐
+  noPlayData: [], // 首页即将上映
+  firstTotal: {}, // 排行榜第一的总票房电影
   topTotal: [], // 总票房排行榜
-  firstTotal: {}, // 排行榜第一的电影
-  topScore: [], // 高评分排行榜
   firstScore: {}, // 排行榜第一的高评分电影
+  topScore: [], // 高评分排行榜
   todayTotal: 0, // 今日票房总计
   time: null, // 时间信息
-  recommended: []  // 用于存储推荐的电影
+  recommended: [],  // 用于存储推荐的电影
+  noticeVisible: false, // 公告弹窗显示状态
+  currentNotice: null, // 当前显示的公告
+  noticeNoShow: false // 是否不再显示公告
 });
+
+// 格式化时间的函数
+const formatTime = (time) => {
+  if (!time) return '';
+  return dayjs(time).format('YYYY-MM-DD HH:mm');
+}
+
+// 修复loadNotice函数，确保弹窗正确显示
+const loadNotice = () => {
+  // 1. 去除所有console调试代码，使逻辑更清晰
+  
+  // 2. 清除localStorage中的不再显示标记（强制显示公告）
+  localStorage.removeItem('xm-notice-noshow');
+  data.noticeNoShow = false;
+  
+  // 3. 清除已读记录，强制显示新公告
+  localStorage.removeItem('xm-read-notices');
+  
+  // 4. 检查用户是否登录
+  const user = JSON.parse(localStorage.getItem('xm-user') || '{}');
+  const isLoggedIn = !!user.id;
+
+  // 5. 强制设置登录标记为true
+  const justLoggedIn = true;
+  sessionStorage.setItem('just_logged_in', 'true');
+
+  // 6. 修改请求参数，获取所有公告
+  request.get('/notice/selectAll').then(res => {
+    if (res.code === '200' && res.data && res.data.length > 0) {
+      // 处理数据
+      const notices = res.data.map(notice => ({
+        ...notice,
+        important: true // 强制所有公告都是重要公告
+      }));
+      
+      // 按时间排序，显示最新的
+      const sortedNotices = [...notices].sort((a, b) => 
+        new Date(b.time) - new Date(a.time)
+      );
+      
+      // 设置当前公告
+      data.currentNotice = sortedNotices[0];
+      
+      // 7. 强制显示公告
+      setTimeout(() => {
+        data.noticeVisible = true;
+      }, 300);
+    }
+  }).catch(err => {
+    console.error("加载公告失败", err);
+  });
+}
+
+// 修复watchNoticeNoShow函数，防止阻止公告显示
+const watchNoticeNoShow = () => {
+  // 不保存到localStorage，只在当前会话有效
+  console.log("用户选择了不再提示，设置标记");
+}
 
 // 加载今日票房总计
 const loadTodayTotal = () => {
@@ -217,13 +365,30 @@ const loadRecommendations = () => {
   });
 }
 
+// 添加一个独立的弹窗初始化函数
+const initNoticePopup = () => {
+  // 延迟初始化弹窗
+  setTimeout(() => {
+    // 如果已经加载了公告数据
+    if (data.currentNotice) {
+      data.noticeVisible = true;
+    } else {
+      // 如果还没有加载公告，则调用加载函数
+      loadNotice();
+      // 再次延迟确保显示
+      setTimeout(() => {
+        data.noticeVisible = true;
+      }, 500);
+    }
+  }, 800);
+}
 
+// 修改初始加载数据的顺序，确保其他API完成后再加载公告
 // 初始加载数据
 loadTodayTotal();
 loadTotal();
 loadScore();
 loadRecommendations();  // 加载推荐电影数据
-
 
 const navTo = (url) => {
   location.href = url
@@ -251,6 +416,27 @@ const load = () => {
   })
 }
 load()
+
+// 修复closeNotice方法，关闭弹窗后清除已读标记
+const closeNotice = () => {
+  data.noticeVisible = false;
+  
+  // 将此公告移出已读列表，以便下次能再次显示
+  if (data.currentNotice) {
+    const readNotices = JSON.parse(localStorage.getItem('xm-read-notices') || '[]');
+    const filteredNotices = readNotices.filter(id => id !== data.currentNotice.id);
+    localStorage.setItem('xm-read-notices', JSON.stringify(filteredNotices));
+  }
+}
+
+// 修改onMounted钩子，确保在组件挂载后强制初始化公告弹窗
+onMounted(() => {
+  // 立即加载公告
+  loadNotice();
+  
+  // 延迟初始化弹窗，确保数据已加载
+  initNoticePopup();
+});
 </script>
 
 <style scoped>
@@ -618,5 +804,251 @@ load()
   text-decoration: underline;
   transform: translateX(8px);
   color: #1a73e8;
+}
+
+/* 公告弹窗样式 */
+.notice-popup-dialog {
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.notice-popup-header {
+  text-align: center;
+  margin-bottom: 10px;
+  padding: 20px 0 0;
+  position: relative;
+}
+
+.notice-popup-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #303133;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.notice-icon {
+  font-size: 24px;
+  color: #409EFF;
+  animation: bellRing 2s infinite;
+}
+
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0); }
+  5%, 15% { transform: rotate(15deg); }
+  10%, 20% { transform: rotate(-15deg); }
+}
+
+.notice-popup-content {
+  position: relative;
+  z-index: 1;
+  padding: 10px 15px;
+}
+
+.notice-popup-card {
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: visible;
+}
+
+.notice-card-important {
+  border-left: 4px solid #F56C6C;
+}
+
+.notice-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f7f8fa;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.notice-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.notice-tag {
+  margin-right: 5px;
+}
+
+.title-text {
+  font-weight: 600;
+  font-size: 16px;
+  color: #2c3e50;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notice-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+  justify-content: flex-end;
+}
+
+.notice-card-time {
+  color: #909399;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.notice-card-content {
+  padding: 25px;
+  color: #606266;
+  line-height: 1.8;
+  font-size: 15px;
+  max-height: 400px;
+  min-height: 200px;
+  overflow-y: auto;
+}
+
+.content-text {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: inherit;
+  margin: 0;
+}
+
+.notice-decoration {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.notice-decoration-circle {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.1;
+}
+
+.circle-1 {
+  width: 300px;
+  height: 300px;
+  background: #409EFF;
+  top: 10%;
+  right: 10%;
+  animation: float 10s ease-in-out infinite;
+}
+
+.circle-2 {
+  width: 200px;
+  height: 200px;
+  background: #F56C6C;
+  bottom: 20%;
+  left: 15%;
+  animation: float 12s ease-in-out infinite reverse;
+}
+
+.circle-3 {
+  width: 150px;
+  height: 150px;
+  background: #67C23A;
+  bottom: 10%;
+  right: 20%;
+  animation: float 8s ease-in-out infinite 2s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-20px) scale(1.05); }
+}
+
+.notice-empty {
+  padding: 30px 0;
+  text-align: center;
+}
+
+.notice-popup-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0 0;
+}
+
+.close-btn {
+  padding: 9px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+}
+
+:deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+  margin-top: 8vh !important;
+}
+
+:deep(.el-dialog__header) {
+  padding: 0;
+  margin: 0;
+}
+
+:deep(.el-dialog__headerbtn) {
+  top: 20px;
+  right: 20px;
+  font-size: 20px;
+  z-index: 10;
+}
+
+:deep(.el-dialog__headerbtn .el-dialog__close) {
+  color: #909399;
+}
+
+:deep(.el-dialog__body) {
+  padding: 10px 20px;
+}
+
+:deep(.el-dialog__footer) {
+  padding: 10px 20px 20px;
+}
+
+/* 自定义滚动条 */
+.notice-card-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notice-card-content::-webkit-scrollbar-thumb {
+  background-color: #dcdfe6;
+  border-radius: 3px;
+}
+
+.notice-card-content::-webkit-scrollbar-track {
+  background-color: #f5f7fa;
+}
+
+.debug-panel {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 5px;
+  border-radius: 4px;
 }
 </style>

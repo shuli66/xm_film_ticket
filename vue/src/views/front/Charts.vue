@@ -120,7 +120,9 @@
               <div v-for="(actor, index) in data.topActors.slice(0, 5)" :key="index" class="new-actor-item">
                 <div class="new-actor-rank" :class="{'top-three': index < 3}">{{ index + 1 }}</div>
                 <div class="new-actor-avatar">
-                  <el-avatar :size="40" icon="el-icon-user">{{ actor.charAt(0) }}</el-avatar>
+                  <el-avatar :size="40">
+                    {{ actor.charAt(0) }}
+                  </el-avatar>
                 </div>
                 <div class="new-actor-info">
                   <div class="new-actor-name">{{ actor }}</div>

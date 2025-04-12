@@ -42,7 +42,7 @@ import {reactive, ref} from "vue";
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
 import router from "@/router/index.js";
-import { API } from '@/utils/api.js';
+import { collectApi } from '@/utils/api.js';
 
 const data = reactive({
   user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
@@ -53,12 +53,10 @@ const data = reactive({
 })
 
 const load = () => {
-  request.get(API.COLLECT.SELECT_PAGE, {
-    params: {
-      pageNum: data.pageNum,
-      pageSize: data.pageSize,
-      userId: data.user.id
-    }
+  collectApi.getPage({
+    pageNum: data.pageNum,
+    pageSize: data.pageSize,
+    userId: data.user.id
   }).then(res => {
     if (res.code === '200') {
       data.collectData = res.data.list
