@@ -60,7 +60,7 @@
   import router from "@/router/index.js";
   import { reactive } from "vue";
   import request from "@/utils/request.js";
-  import { API } from '@/utils/api.js';
+  import { noticeApi } from '@/utils/api.js';
 
   const data = reactive({
     user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
@@ -81,7 +81,7 @@
   }
 
   const loadNotice = () => {
-    request.get(API.NOTICE.SELECT_ALL).then(res => {
+    noticeApi.getAll().then(res => {
       data.noticeData = res.data
       let i = 0
       if (data.noticeData && data.noticeData.length) {

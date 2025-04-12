@@ -115,4 +115,16 @@ public class OrdersController {
         return Result.success();
     }
 
+    /**
+     * 查询订单状态
+     */
+    @GetMapping("/status/{orderNo}")
+    public Result getOrderStatus(@PathVariable String orderNo) {
+        Orders order = ordersService.selectByOrderNo(orderNo);
+        if (order == null) {
+            return Result.error("404", "订单不存在");
+        }
+        return Result.success(order.getStatus());
+    }
+
 }

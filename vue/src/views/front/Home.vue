@@ -139,7 +139,6 @@ import { reactive } from "vue";
 import request from "@/utils/request.js";
 import { ElMessage } from "element-plus";
 import SnowEffect from '@/components/SnowEffect.vue';
-import { API } from '@/utils/api.js';
 
 const data = reactive({
   data1: [], // 已上映的电影
@@ -157,7 +156,7 @@ const data = reactive({
 
 // 加载今日票房总计
 const loadTodayTotal = () => {
-  request.get(API.ORDERS.TODAY_TOTAL).then(res => {
+  request.get('/orders/todayTotal').then(res => {
     if (res.code === '200') {
       data.todayTotal = res.data.total
       data.time = res.data.time
@@ -169,7 +168,7 @@ const loadTodayTotal = () => {
 
 // 加载总票房排行榜
 const loadTotal = () => {
-  request.get(API.FILM.SELECT_TOTAL_TOP).then(res => {
+  request.get('/film/selectTotalTop').then(res => {
     if (res.code === '200') {
       data.firstTotal = res.data[0]
       data.topTotal = res.data.slice(1, res.data.length)
@@ -181,7 +180,7 @@ const loadTotal = () => {
 
 // 加载评分排行榜
 const loadScore = () => {
-  request.get(API.FILM.SELECT_SCORE_TOP).then(res => {
+  request.get('/film/selectScoreTop').then(res => {
     if (res.code === '200') {
       data.firstScore = res.data[0]
       data.topScore = res.data.slice(1, res.data.length)
@@ -204,7 +203,7 @@ const loadRecommendations = () => {
     return;
   }
 
-  request.get(API.RECOMMENDATIONS.GET_BY_USER_ID(userId)).then(res => {
+  request.get(`/api/recommendations/${userId}`).then(res => {
     console.log("API 请求结果:", res);  // 输出请求返回的结果
     if (res.code === '200') {
       console.log(data.recommended);  // 输出推荐电影的数据，检查每个 item 是否有 img 和 title 字段
@@ -218,11 +217,13 @@ const loadRecommendations = () => {
   });
 }
 
+
 // 初始加载数据
 loadTodayTotal();
 loadTotal();
 loadScore();
 loadRecommendations();  // 加载推荐电影数据
+
 
 const navTo = (url) => {
   location.href = url
@@ -230,11 +231,10 @@ const navTo = (url) => {
 
 // 加载所有电影
 const load = () => {
-  request.get(API.FILM.SELECT_ALL).then(res => {
+  request.get('/film/selectAll').then(res => {
     if (res.code === '200') {
-      data.data1 = res.data.filter(item => item.status === '已上映')
-      data.data2 = res.data.filter(item => item.status === '待上映')
-      // 从所有电影中筛选出最多8部正在播放和即将上映的电影
+      data.data1 = res.data.filter(v => v.status === '已上映')
+      data.data2 = res.data.filter(v => v.status === '待上映')
       if (data.data1 && data.data1.length > 8) {
         data.playingData = data.data1.slice(0, 8)
       } else {

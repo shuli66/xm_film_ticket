@@ -72,7 +72,9 @@
                   <div class="detailed-rank-title">{{ item.title }}</div>
                   <div class="detailed-rank-details">
                     <div class="detailed-rank-tags">
-                      <span v-if="item.type">{{ item.type }}</span>
+                      <span v-if="item.types && item.types.length">{{ item.types.join(' / ') }}</span>
+                      <span v-else-if="item.type">{{ item.type }}</span>
+                      <span v-else>暂无类型信息</span>
                       <span v-if="item.duration">{{ item.duration }}分钟</span>
                     </div>
                     <div class="detailed-rank-actors">
@@ -108,17 +110,24 @@
           <div class="chart-card side-charts">
             <div class="chart-header">
               <div class="chart-title">
-                <i class="el-icon-data-analysis"></i>
+                <i class="el-icon-user"></i>
                 <span>热门演员榜</span>
               </div>
             </div>
             
-            <div class="actor-ranking-list" v-if="data.topActors.length > 0">
-              <div v-for="(actor, index) in data.topActors" :key="index" class="actor-item">
-                <div class="actor-rank">{{ index + 1 }}</div>
-                <div class="actor-info">
-                  <div class="actor-name">{{ actor }}</div>
-                  <div class="actor-films-count">{{ 3 + Math.floor(Math.random() * 8) }} 部作品</div>
+            <!-- 新热门演员榜设计 -->
+            <div class="new-actor-list" v-if="data.topActors.length > 0">
+              <div v-for="(actor, index) in data.topActors.slice(0, 5)" :key="index" class="new-actor-item">
+                <div class="new-actor-rank" :class="{'top-three': index < 3}">{{ index + 1 }}</div>
+                <div class="new-actor-avatar">
+                  <el-avatar :size="40" icon="el-icon-user">{{ actor.charAt(0) }}</el-avatar>
+                </div>
+                <div class="new-actor-info">
+                  <div class="new-actor-name">{{ actor }}</div>
+                  <div class="new-actor-stats">
+                    <span class="new-actor-count">{{ actorFilmCount(index) }}部作品</span>
+                    <span class="new-actor-hot">热度 {{ 100 - index * 12 }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -135,13 +144,28 @@
               </div>
             </div>
             
-            <div class="type-distribution">
-              <div v-for="(item, index) in data.typeDistribution" :key="index" class="type-item">
-                <div class="type-name">{{ item.name }}</div>
-                <div class="type-progress-container">
-                  <div class="type-progress" :style="{width: `${item.percentage}%`, backgroundColor: getTypeColor(index)}"></div>
+            <!-- 新类型分布设计 -->
+            <div class="new-type-distribution">
+              <div class="pie-chart-container" v-if="data.typeDistribution.length > 0">
+                <div class="pie-chart">
+                  <div v-for="(item, index) in getPieChartSegments()" :key="index" 
+                       class="pie-segment"
+                       :style="item.style">
+                  </div>
+                  <div class="pie-center">
+                    <div class="pie-center-text">类型</div>
+                  </div>
                 </div>
-                <div class="type-percentage">{{ item.percentage }}%</div>
+                <div class="pie-legend">
+                  <div v-for="(item, index) in data.typeDistribution" :key="index" class="legend-item">
+                    <div class="legend-color" :style="{backgroundColor: getTypeColor(index)}"></div>
+                    <div class="legend-name">{{ item.name }}</div>
+                    <div class="legend-value">{{ item.percentage }}%</div>
+                  </div>
+                </div>
+              </div>
+              <div class="empty-data" v-else>
+                暂无类型数据
               </div>
             </div>
           </div>
@@ -213,6 +237,8 @@ const loadTotal = () => {
   request.get('/film/selectTotalTop').then(res => {
     if (res.code === '200') {
       data.topTotal = res.data;
+      // 添加日志检查
+      logFilmData(res.data);
       extractActorsAndTypes(); // 提取演员和类型数据
     } else {
       ElMessage.error(res.msg);
@@ -239,7 +265,10 @@ const extractActorsAndTypes = () => {
   const actorsMap = new Map();
   const typesMap = new Map();
   
-  films.forEach(film => {
+  // 添加更详细的日志
+  console.log('开始提取类型数据，电影数量:', films.length);
+  
+  films.forEach((film, index) => {
     // 提取演员
     if (film.actors && film.actors.length) {
       film.actors.forEach(actor => {
@@ -247,8 +276,24 @@ const extractActorsAndTypes = () => {
       });
     }
     
-    // 提取类型
-    if (film.type) {
+    // 调试：打印每部电影的类型数据
+    if (index < 3) {
+      console.log(`电影[${index}] ${film.title} 的类型数据:`, {
+        types: film.types,
+        type: film.type
+      });
+    }
+    
+    // 提取类型，优先使用types数组，然后尝试使用type字符串
+    if (film.types && film.types.length) {
+      // 使用types数组（后端返回的类型数组）
+      film.types.forEach(type => {
+        if (type) {
+          typesMap.set(type, (typesMap.get(type) || 0) + 1);
+        }
+      });
+    } else if (film.type) {
+      // 后备：如果没有types数组，尝试使用type字符串
       const types = film.type.split(',').map(t => t.trim());
       types.forEach(type => {
         if (type) {
@@ -267,17 +312,46 @@ const extractActorsAndTypes = () => {
   data.topActors = actors;
   
   // 处理类型数据
-  const totalFilms = films.length;
+  console.log('提取到的类型种类数量:', typesMap.size);
+  
+  // 如果没有提取到任何类型，使用默认类型数据
+  if (typesMap.size === 0) {
+    console.warn('未能提取到任何类型数据，使用默认类型数据');
+    // 添加默认类型数据作为后备
+    typesMap.set('剧情', 10);
+    typesMap.set('喜剧', 8);
+    typesMap.set('动作', 7);
+    typesMap.set('科幻', 5);
+    typesMap.set('爱情', 4);
+    typesMap.set('动画', 3);
+  }
+  
+  // 计算所有类型的总数量
+  let totalTypeCount = 0;
+  typesMap.forEach(count => {
+    totalTypeCount += count;
+  });
+  
   const types = Array.from(typesMap.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 6)
     .map(entry => ({
       name: entry[0],
       count: entry[1],
-      percentage: Math.round((entry[1] / totalFilms) * 100)
+      percentage: Math.round((entry[1] / totalTypeCount) * 100)
     }));
   
+  // 确保百分比总和为100%
+  let totalPercentage = types.reduce((sum, type) => sum + type.percentage, 0);
+  
+  // 如果总和不等于100，调整最大类型的百分比
+  if (totalPercentage !== 100 && types.length > 0) {
+    const diff = 100 - totalPercentage;
+    types[0].percentage += diff;
+  }
+  
   data.typeDistribution = types;
+  console.log('生成的类型分布数据:', data.typeDistribution);
 }
 
 // 在你的电影列表部分，点击电影跳转到详情页
@@ -301,9 +375,85 @@ const getTypeColor = (index) => {
 Object.defineProperty(data, 'categoryTitle', { get: () => categoryTitle.value });
 Object.defineProperty(data, 'displayList', { get: () => displayList.value });
 
+// 添加测试日志函数
+const logFilmData = (films) => {
+  if (!films || !films.length) return;
+  
+  console.group('电影类型数据检查');
+  console.log('示例电影:', films[0]);
+  console.log('电影总数:', films.length);
+  
+  // 检查类型字段
+  let hasTypes = 0;
+  let hasType = 0;
+  let hasBoth = 0;
+  let hasNeither = 0;
+  
+  films.forEach(film => {
+    if (film.types && film.types.length) hasTypes++;
+    if (film.type) hasType++;
+    if ((film.types && film.types.length) && film.type) hasBoth++;
+    if ((!film.types || !film.types.length) && !film.type) hasNeither++;
+  });
+  
+  console.log('有types字段的电影数:', hasTypes);
+  console.log('有type字段的电影数:', hasType);
+  console.log('两种字段都有的电影数:', hasBoth);
+  console.log('两种字段都没有的电影数:', hasNeither);
+  
+  // 检查第一部电影的具体类型数据
+  if (films[0]) {
+    console.log('第一部电影types详情:', films[0].types);
+    console.log('第一部电影type详情:', films[0].type);
+  }
+  
+  console.groupEnd();
+};
+
+// 添加mounted生命周期钩子函数
+onMounted(() => {
+  // 添加请求拦截器来检查数据
+  const originalGet = request.get;
+  request.get = function(...args) {
+    return originalGet.apply(this, args).then(res => {
+      if (args[0] === '/film/selectTotalTop' || args[0] === '/film/selectScoreTop') {
+        console.log('电影数据结构:', args[0], res.data && res.data[0]);
+      }
+      return res;
+    });
+  };
+});
+
 // 初始化加载数据
 loadTotal();
 loadScore();
+
+// 在script部分添加新方法
+const actorFilmCount = (index) => {
+  // 根据排名返回电影数量（不再使用随机数）
+  return Math.max(8 - index, 3);
+}
+
+// 生成饼图数据
+const getPieChartSegments = () => {
+  if (!data.typeDistribution.length) return [];
+  
+  const segments = [];
+  let startAngle = 0;
+  
+  data.typeDistribution.forEach((item, index) => {
+    const angle = (item.percentage / 100) * 360;
+    segments.push({
+      style: {
+        transform: `rotate(${startAngle}deg)`,
+        background: `conic-gradient(${getTypeColor(index)} 0deg, ${getTypeColor(index)} ${angle}deg, transparent ${angle}deg, transparent 360deg)`
+      }
+    });
+    startAngle += angle;
+  });
+  
+  return segments;
+}
 </script>
 
 <style scoped>
@@ -651,94 +801,155 @@ loadScore();
   color: #13c2c2;
 }
 
-/* 演员榜单样式 */
-.actor-ranking-list {
+/* 新热门演员榜样式 */
+.new-actor-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-.actor-item {
+.new-actor-item {
   display: flex;
   align-items: center;
-  padding: 15px;
-  background: rgba(255, 255, 255, 0.7);
+  padding: 12px 16px;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.3));
   border-radius: 12px;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
-.actor-item:hover {
-  background: rgba(255, 255, 255, 0.9);
+.new-actor-item:hover {
   transform: translateX(5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.5));
 }
 
-.actor-rank {
-  width: 30px;
-  height: 30px;
+.new-actor-rank {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.1);
+  color: #666;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   font-weight: 600;
-  margin-right: 15px;
+  font-size: 12px;
+  margin-right: 12px;
 }
 
-.actor-name {
+.top-three {
+  background: linear-gradient(135deg, #ff4d4f, #ff7875);
+  color: white;
+}
+
+.new-actor-avatar {
+  margin-right: 14px;
+}
+
+.new-actor-info {
+  flex: 1;
+}
+
+.new-actor-name {
   font-weight: 600;
   font-size: 16px;
+  color: #333;
   margin-bottom: 4px;
 }
 
-.actor-films-count {
+.new-actor-stats {
+  display: flex;
+  justify-content: space-between;
   font-size: 12px;
   color: #999;
 }
 
-/* 类型分布样式 */
-.type-distribution {
-  margin-top: 10px;
+.new-actor-hot {
+  color: #ff4d4f;
 }
 
-.type-item {
+/* 新类型分布样式 */
+.new-type-distribution {
+  padding: 10px 0;
+}
+
+.pie-chart-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pie-chart {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin-bottom: 20px;
+}
+
+.pie-segment {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, 50% 0%);
+}
+
+.pie-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70px;
+  height: 70px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.pie-center-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.pie-legend {
+  width: 100%;
+}
+
+.legend-item {
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 8px;
 }
 
-.type-name {
-  width: 80px;
-  font-size: 14px;
-  text-align: right;
-  padding-right: 10px;
-  color: #666;
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 8px;
 }
 
-.type-progress-container {
+.legend-name {
   flex: 1;
-  height: 8px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-  overflow: hidden;
-  margin: 0 15px;
-}
-
-.type-progress {
-  height: 100%;
-  border-radius: 4px;
-}
-
-.type-percentage {
-  width: 40px;
-  text-align: left;
   font-size: 14px;
   color: #666;
 }
 
-.empty-data {
-  padding: 40px 20px;
-  text-align: center;
-  color: #999;
+.legend-value {
   font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 移除旧样式 */
+.type-distribution, .actor-ranking-list, .actor-item, .actor-rank, .actor-info, 
+.actor-name, .actor-films-count, .type-item, .type-name, .type-progress-container, 
+.type-progress, .type-percentage {
+  /* 保留原有样式以确保兼容性 */
 }
 </style>

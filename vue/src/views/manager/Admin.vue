@@ -43,7 +43,7 @@
         </el-form-item>
         <el-form-item prop="avatar" label="头像">
           <el-upload
-              :action="baseUrl + '/files/upload'"
+              :action="uploadUrl"
               :on-success="handleFileUpload"
               list-type="picture"
               >
@@ -76,8 +76,9 @@ import {reactive} from "vue";
 import request from "@/utils/request.js";
 import {ElMessage, ElMessageBox} from "element-plus";
 import {Delete, Edit} from "@element-plus/icons-vue";
+import { fileApi } from "@/utils/api.js";
 
-const baseUrl = import.meta.env.VITE_BASE_URL
+const uploadUrl = fileApi.uploadUrl;
 
 const data = reactive({
   formVisible: false,

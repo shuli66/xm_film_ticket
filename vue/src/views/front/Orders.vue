@@ -169,12 +169,11 @@
 </template>
 
 <script setup>
-import { reactive } from "vue";
+import { reactive, ref } from "vue";
 import request from "@/utils/request.js";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElNotification } from "element-plus";
 import QrcodeVue from 'qrcode.vue';
-import router from "@/router/index.js";
-import { PAY_URL, API } from '@/utils/api.js';
+import { paymentApi, orderApi } from "@/utils/api.js";  // 导入API模块
 
 const data = reactive({
   user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
@@ -193,11 +192,19 @@ const data = reactive({
     time: '',
     seatList: [],
     ticketCode: ''
+  },
+  // 添加支付相关状态
+  paymentPolling: {
+    active: false,
+    orderNo: '',
+    timer: null,
+    attempts: 0,
+    maxAttempts: 30 // 最多轮询30次 (5分钟)
   }
 })
 
 const load = () => {
-  request.get(API.ORDERS.SELECT_PAGE, {
+  request.get('/orders/selectPage', {
     params: {
       pageNum: data.pageNum,
       pageSize: data.pageSize,
@@ -223,7 +230,7 @@ const reset = () => {
 }
 
 const cancel = (id) => {
-  request.get(API.ORDERS.CANCEL(id)).then(res => {
+  request.get('/orders/cancel/' + id).then(res => {
     if (res.code === '200') {
       ElMessage.success('退票成功')
       load()
@@ -233,9 +240,96 @@ const cancel = (id) => {
   })
 }
 
+// 修改支付方法，添加轮询逻辑
 const pay = (row) => {
-  // 打开支付页面，URL 中携带订单编号作为参数
-  window.open(`${PAY_URL}?orderNo=${row.orderNo}`);
+  // 记录当前订单号，用于后续轮询
+  data.paymentPolling.orderNo = row.orderNo;
+  data.paymentPolling.active = true;
+  data.paymentPolling.attempts = 0;
+  
+  // 启动轮询定时器
+  localStorage.setItem('polling_order', row.orderNo); 
+  const paymentWindow = window.open(paymentApi.alipayUrl(row.orderNo), '_blank');
+  
+  // 启动轮询
+  startPollingOrderStatus(row.orderNo);
+  
+  // 监听支付窗口关闭事件
+  const checkWindowClosed = setInterval(() => {
+    if (paymentWindow && paymentWindow.closed) {
+      clearInterval(checkWindowClosed);
+      // 支付窗口关闭后，再次触发一次状态查询
+      checkOrderStatus(row.orderNo, true);
+    }
+  }, 1000);
+}
+
+// 开始轮询订单状态
+const startPollingOrderStatus = (orderNo) => {
+  // 清除可能存在的旧定时器
+  if (data.paymentPolling.timer) {
+    clearInterval(data.paymentPolling.timer);
+  }
+  
+  // 设置新的轮询定时器
+  data.paymentPolling.timer = setInterval(() => {
+    checkOrderStatus(orderNo);
+  }, 10000); // 每10秒查询一次
+}
+
+// 检查订单状态
+const checkOrderStatus = (orderNo, isFinalCheck = false) => {
+  // 如果已经超过最大尝试次数，停止轮询
+  if (!isFinalCheck && data.paymentPolling.attempts >= data.paymentPolling.maxAttempts) {
+    stopPollingOrderStatus();
+    return;
+  }
+  
+  data.paymentPolling.attempts++;
+  
+  // 查询订单状态
+  orderApi.getOrderStatus(orderNo).then(res => {
+    if (res.code === '200') {
+      const orderStatus = res.data;
+      
+      // 如果订单状态已更新为"待取票"，说明支付成功
+      if (orderStatus === '待取票') {
+        // 支付成功，停止轮询
+        stopPollingOrderStatus();
+        
+        // 显示支付成功通知
+        ElNotification({
+          title: '支付成功',
+          message: '订单支付成功，您可以查看订单详情并取票',
+          type: 'success',
+          duration: 5000
+        });
+        
+        // 刷新订单列表
+        load();
+      } else if (isFinalCheck) {
+        // 最后检查时如果仍未成功，提示用户刷新
+        stopPollingOrderStatus();
+        ElMessage.info('如支付已完成，请手动刷新页面查看最新订单状态');
+      }
+    }
+  }).catch(() => {
+    // 请求失败时的处理
+    if (isFinalCheck) {
+      stopPollingOrderStatus();
+      ElMessage.info('如支付已完成，请手动刷新页面查看最新订单状态');
+    }
+  });
+}
+
+// 停止轮询
+const stopPollingOrderStatus = () => {
+  if (data.paymentPolling.timer) {
+    clearInterval(data.paymentPolling.timer);
+    data.paymentPolling.timer = null;
+  }
+  data.paymentPolling.active = false;
+  localStorage.removeItem('polling_order');
 }
 
 const showTicket = (row) => {
@@ -248,7 +342,7 @@ const showTicket = (row) => {
 }
 
 const confirmPickup = () => {
-  request.get(API.ORDERS.PICKUP(data.currentTicket.id)).then(res => {
+  request.get('/orders/pickup/' + data.currentTicket.id).then(res => {
     if (res.code === '200') {
       ElMessage.success('取票成功')
       data.ticketVisible = false
@@ -259,7 +353,24 @@ const confirmPickup = () => {
   })
 }
 
+// 页面初始化时检查是否有未完成的支付
+const initPaymentPolling = () => {
+  const pollingOrderNo = localStorage.getItem('polling_order');
+  if (pollingOrderNo) {
+    // 恢复轮询
+    data.paymentPolling.orderNo = pollingOrderNo;
+    data.paymentPolling.active = true;
+    data.paymentPolling.attempts = 0;
+    startPollingOrderStatus(pollingOrderNo);
+    
+    // 立即检查一次状态
+    checkOrderStatus(pollingOrderNo);
+  }
+}
+
 load();
+// 初始化支付轮询
+initPaymentPolling();
 </script>
 
 <style scoped>

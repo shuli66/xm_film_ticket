@@ -133,6 +133,7 @@ public class FilmService {
         List<Film> films = filmMapper.selectTotalTop10();
         for (Film film : films) {
             initActors(film);
+            initTypes(film);
         }
         return films;
     }
@@ -141,6 +142,7 @@ public class FilmService {
         List<Film> films = filmMapper.selectScoreTop10();
         for (Film film : films) {
             initActors(film);
+            initTypes(film);
         }
         return films;
     }
@@ -151,6 +153,28 @@ public class FilmService {
         List<Actor> actors = actorMapper.selectAll(actor);
         List<String> actorsNameList = actors.stream().map(Actor::getName).collect(Collectors.toList());
         film.setActors(actorsNameList);
+    }
+    
+    private void initTypes(Film film) {
+        if (film.getTypeIds() == null || film.getTypeIds().isEmpty()) {
+            return;
+        }
+        
+        try {
+            List<Integer> typeIds = JSONUtil.toList(film.getTypeIds(), Integer.class);
+            List<String> typeNames = new ArrayList<>();
+            
+            for (Integer typeId : typeIds) {
+                Type type = typeMapper.selectById(typeId);
+                if (type != null) {
+                    typeNames.add(type.getTitle());
+                }
+            }
+            
+            film.setTypes(typeNames);
+        } catch (Exception e) {
+            film.setTypes(new ArrayList<>());
+        }
     }
 
     public Integer selectPriceRanking(Integer filmId) {

@@ -10,7 +10,7 @@
         <div class="avatar-section">
           <el-form-item prop="avatar" label="头像">
             <el-upload
-                :action="baseUrl + '/files/upload'"
+                :action="uploadUrl"
                 :on-success="handleFileUpload"
                 :filmShow-file-list="false"
                 class="avatar-uploader"
@@ -56,12 +56,16 @@
 import { reactive } from "vue";
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
+import { fileApi } from "@/utils/api.js";  // 导入API模块
 
 const baseUrl = import.meta.env.VITE_BASE_URL
 
 const data = reactive({
   user: JSON.parse(localStorage.getItem('xm-user') || '{}')
 })
+
+// 使用API模块中的上传URL
+const uploadUrl = fileApi.uploadUrl;
 
 const handleFileUpload = (res) => {
   data.user.avatar = res.data

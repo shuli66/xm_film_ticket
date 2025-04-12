@@ -318,7 +318,6 @@ import {reactive, ref} from "vue";
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
 import router from "@/router/index.js";
-import { API } from '@/utils/api.js';
 
 // 添加时间格式化函数
 const formatTime = (time) => {
@@ -461,15 +460,13 @@ const loadTodayPrice = () => {
 }
 loadTodayPrice()
 const loadPriceRanking = () => {
-  data.filmId = router.currentRoute.value.query.id;
-  request.get(API.FILM.SELECT_PRICE_RANKING(data.filmId)).then(res => {
+  request.get('/film/selectPriceRanking/' + data.filmId).then(res => {
     if (res.code === '200') {
-      data.priceRankingData = res.data;
-      data.cinemasList = data.priceRankingData.slice(0, 5); // 取前5家影院显示
+      data.priceRanking = res.data
     } else {
-      ElMessage.error(res.msg);
+      ElMessage.error(res.msg)
     }
-  });
+  })
 }
 loadPriceRanking()
 const scoreInit = () => {
@@ -545,7 +542,7 @@ const collect = () => {
     userId: data.user.id,
     filmId: data.filmId
   }
-  request.post(API.COLLECT.ADD, collectData).then(res => {
+  request.post('/collect/add', collectData).then(res => {
     if (res.code === '200') {
       ElMessage.success('操作成功')
       loadCollect()
@@ -556,7 +553,7 @@ const collect = () => {
 }
 const loadFilm = () => {
   data.filmId = router.currentRoute.value.query.id
-  request.get(API.FILM.SELECT_BY_ID(data.filmId)).then(res => {
+  request.get('/film/selectById/' + data.filmId).then(res => {
     if (res.code === '200') {
       data.filmData = res.data
       data.halfScore = (data.filmData.score / 2).toFixed(1)
