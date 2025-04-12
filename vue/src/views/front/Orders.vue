@@ -173,6 +173,8 @@ import { reactive } from "vue";
 import request from "@/utils/request.js";
 import { ElMessage } from "element-plus";
 import QrcodeVue from 'qrcode.vue';
+import router from "@/router/index.js";
+import { PAY_URL, API } from '@/utils/api.js';
 
 const data = reactive({
   user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
@@ -195,7 +197,7 @@ const data = reactive({
 })
 
 const load = () => {
-  request.get('/orders/selectPage', {
+  request.get(API.ORDERS.SELECT_PAGE, {
     params: {
       pageNum: data.pageNum,
       pageSize: data.pageSize,
@@ -221,7 +223,7 @@ const reset = () => {
 }
 
 const cancel = (id) => {
-  request.get('/orders/cancel/' + id).then(res => {
+  request.get(API.ORDERS.CANCEL(id)).then(res => {
     if (res.code === '200') {
       ElMessage.success('退票成功')
       load()
@@ -233,7 +235,7 @@ const cancel = (id) => {
 
 const pay = (row) => {
   // 打开支付页面，URL 中携带订单编号作为参数
-  window.open('http://localhost:9090/alipay/pay?orderNo=' + row.orderNo);
+  window.open(`${PAY_URL}?orderNo=${row.orderNo}`);
 }
 
 const showTicket = (row) => {
@@ -246,7 +248,7 @@ const showTicket = (row) => {
 }
 
 const confirmPickup = () => {
-  request.get('/orders/pickup/' + data.currentTicket.id).then(res => {
+  request.get(API.ORDERS.PICKUP(data.currentTicket.id)).then(res => {
     if (res.code === '200') {
       ElMessage.success('取票成功')
       data.ticketVisible = false

@@ -124,6 +124,7 @@ import {ElMessage} from "element-plus";
 import { ArrowRight, Film } from '@element-plus/icons-vue';
 import router from "@/router/index.js";
 import {useRoute} from 'vue-router';
+import { API } from '@/utils/api.js';
 
 const route = useRoute();
 
@@ -184,7 +185,7 @@ const load = () => {
       params.status = '待上映';
     }
     
-    request.get('/film/selectPage', {
+    request.get(API.FILM.SELECT_PAGE, {
       params: params
     }).then(res => {
       if (res.code === '200') {
@@ -212,7 +213,7 @@ const loadRecommendedFilms = () => {
     return;
   }
   
-  request.get(`/api/recommendations/${userId}`).then(res => {
+  request.get(API.RECOMMENDATIONS.GET_BY_USER_ID(userId)).then(res => {
     if (res.code === '200') {
       data.filmData = res.data;
       data.total = res.data.length;
@@ -232,7 +233,7 @@ const loadRecommendedFilms = () => {
 }
 
 const loadType = () => {
-  request.get('/type/selectAll').then(res => {
+  request.get(API.TYPE.SELECT_ALL).then(res => {
     if (res.code === '200') {
       data.typeData = res.data
     } else {
@@ -241,7 +242,7 @@ const loadType = () => {
   })
 }
 const loadArea = () => {
-  request.get('/area/selectAll').then(res => {
+  request.get(API.AREA.SELECT_ALL).then(res => {
     if (res.code === '200') {
       data.areaData = res.data
     } else {
@@ -250,7 +251,7 @@ const loadArea = () => {
   })
 }
 const loadYear = () => {
-  request.get('/getYear').then(res => {
+  request.get(API.YEAR).then(res => {
     if (res.code === '200') {
       data.yearData = res.data
     } else {

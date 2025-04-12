@@ -196,6 +196,7 @@ import {reactive} from "vue";
 import request from "@/utils/request.js";
 import {ElMessage, ElMessageBox} from "element-plus";
 import {Delete, Edit} from "@element-plus/icons-vue";
+import { API } from '@/utils/api.js';
 
 const baseUrl = import.meta.env.VITE_BASE_URL
 
@@ -215,7 +216,7 @@ const data = reactive({
 })
 
 const loadType = () => {
-  request.get('/type/selectAll').then(res  => {
+  request.get(API.TYPE.SELECT_ALL).then(res  => {
     if (res.code === '200') {
       data.typeData = res.data
     } else {
@@ -224,7 +225,7 @@ const loadType = () => {
   })
 }
 const loadArea = () => {
-  request.get('/area/selectAll').then(res => {
+  request.get(API.AREA.SELECT_ALL).then(res => {
     if (res.code === '200') {
       data.areaData = res.data
     } else {
@@ -233,7 +234,7 @@ const loadArea = () => {
   })
 }
 const load = () => {
-  request.get('/film/selectPage', {
+  request.get(API.FILM.SELECT_PAGE, {
     params: {
       pageNum: data.pageNum,
       pageSize: data.pageSize,
@@ -271,7 +272,7 @@ const save = () => {
   }
   
   if (saveData.id) {
-    request.put('/film/update', saveData).then(res => {
+    request.put(API.FILM.UPDATE, saveData).then(res => {
       if (res.code === '200') {
         ElMessage.success('操作成功')
         data.formVisible = false
@@ -281,7 +282,7 @@ const save = () => {
       }
     })
   } else {
-    request.post('/film/add', saveData).then(res => {
+    request.post(API.FILM.ADD, saveData).then(res => {
       if (res.code === '200') {
         ElMessage.success('操作成功')
         data.formVisible = false
@@ -294,7 +295,7 @@ const save = () => {
 }
 const del = (id) => {
   ElMessageBox.confirm('删除后数据无法恢复，您确定删除吗？', '删除确认', { type: 'warning' }).then(res => {
-    request.delete('/film/delete/' + id).then(res => {
+    request.delete(API.FILM.DELETE(id)).then(res => {
       if (res.code === '200') {
         ElMessage.success("删除成功")
         load()
@@ -312,7 +313,7 @@ const delBatch = () => {
     return
   }
   ElMessageBox.confirm('删除后数据无法恢复，您确定删除吗？', '删除确认', { type: 'warning' }).then(res => {
-    request.delete("/film/delete/batch", {data: data.ids}).then(res => {
+    request.delete(API.FILM.DELETE_BATCH, {data: data.ids}).then(res => {
       if (res.code === '200') {
         ElMessage.success('操作成功')
         load()
