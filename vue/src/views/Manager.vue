@@ -14,7 +14,7 @@
       <div class="manager-header-right">
         <el-dropdown style="cursor: pointer">
           <div style="padding-right: 20px; display: flex; align-items: center">
-            <img style="width: 40px; height: 40px; border-radius: 50%;" :src="data.user.avatar" alt="">
+            <img style="width: 40px; height: 40px; border-radius: 50%;" :src="getFullImageUrl(data.user.avatar)" alt="">
             <span style="margin-left: 5px; color: white">{{ data.user.name }}</span><el-icon color="#fff"><arrow-down /></el-icon>
           </div>
           <template #dropdown>
@@ -81,9 +81,20 @@ import { reactive } from "vue";
 import router from "@/router/index.js";
 import {ElMessage} from "element-plus";
 
+const baseUrl = import.meta.env.VITE_BASE_URL
+
 const data = reactive({
   user: JSON.parse(localStorage.getItem('xm-user') || '{}')
 })
+
+// 获取完整的图片URL
+const getFullImageUrl = (url) => {
+  if (!url) return '';
+  // 如果已经是完整URL则直接返回
+  if (url.startsWith('http')) return url;
+  // 否则拼接baseUrl
+  return baseUrl + url;
+}
 
 const logout = () => {
   localStorage.removeItem('xm-user')
@@ -91,7 +102,7 @@ const logout = () => {
 }
 
 const updateUser = () => {
-  data.user =  JSON.parse(localStorage.getItem('xm-user') || '{}')
+  data.user = JSON.parse(localStorage.getItem('xm-user') || '{}')
 }
 
 if (!data.user.id) {

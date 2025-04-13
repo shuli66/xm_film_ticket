@@ -16,7 +16,7 @@
                 class="avatar-uploader"
             >
               <div class="avatar-wrapper">
-                <img v-if="data.user.avatar" :src="data.user.avatar" class="avatar" />
+                <img v-if="data.user.avatar" :src="getFullImageUrl(data.user.avatar)" class="avatar" />
                 <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
                 <div class="avatar-hover">
                   <div>更换头像</div>
@@ -66,6 +66,15 @@ const data = reactive({
 
 // 使用API模块中的上传URL
 const uploadUrl = fileApi.uploadUrl;
+
+// 获取完整的图片URL
+const getFullImageUrl = (url) => {
+  if (!url) return '';
+  // 如果已经是完整URL则直接返回
+  if (url.startsWith('http')) return url;
+  // 否则拼接baseUrl
+  return baseUrl + url;
+}
 
 const handleFileUpload = (res) => {
   data.user.avatar = res.data
