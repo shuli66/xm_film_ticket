@@ -76,7 +76,7 @@
                       <span v-else-if="item.type">{{ item.type }}</span>
                       <span v-else>暂无类型信息</span>
                       <span v-if="item.duration">{{ item.duration }}分钟</span>
-                    </div>
+              </div>
                     <div class="detailed-rank-actors">
                       <span v-if="item.actors && item.actors.length">主演: {{ item.actors.slice(0, 3).join(' / ') }}</span>
                       <span v-else>管理员暂未输入演职人员信息</span>
@@ -157,7 +157,7 @@
                   <div class="pie-center">
                     <div class="pie-center-text">类型</div>
                   </div>
-                </div>
+                    </div>
                 <div class="pie-legend">
                   <div v-for="(item, index) in data.typeDistribution" :key="index" class="legend-item">
                     <div class="legend-color" :style="{backgroundColor: getTypeColor(index)}"></div>

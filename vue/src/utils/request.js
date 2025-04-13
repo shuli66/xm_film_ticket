@@ -21,6 +21,21 @@ const request = axios.create({
     timeout: 30000 // 后台接口超时时间
 });
 
+// 全局图片URL处理函数
+export const getFullImageUrl = (url) => {
+    // 如果已经是完整URL，直接返回
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+        return url;
+    }
+    
+    // 如果是相对路径，拼接基础URL
+    if (url && url.startsWith('/')) {
+        return import.meta.env.VITE_BASE_URL + url;
+    }
+    
+    return url;
+};
+
 // request 拦截器
 request.interceptors.request.use(config => {
     config.headers['Content-Type'] = 'application/json;charset=utf-8';
@@ -77,6 +92,26 @@ request.interceptors.response.use(
             res = res ? JSON.parse(res) : res;
         }
         
+        // 处理返回数据中的图片URL
+        if (res.data && typeof res.data === 'object') {
+            // 如果是数组，遍历处理
+            if (Array.isArray(res.data)) {
+                res.data.forEach(item => {
+                    processImageUrls(item);
+                });
+            } 
+            // 如果是分页数据
+            else if (res.data.list && Array.isArray(res.data.list)) {
+                res.data.list.forEach(item => {
+                    processImageUrls(item);
+                });
+            }
+            // 普通对象
+            else {
+                processImageUrls(res.data);
+            }
+        }
+        
         // 处理token验证失败
         if (res.code === '401') {
             // 防止重复提示和重复跳转
@@ -130,5 +165,30 @@ request.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+// 处理对象中的图片URL字段
+function processImageUrls(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    
+    // 常见的图片URL字段名
+    const imageFields = ['img', 'image', 'avatar', 'poster', 'cover', 'photo', 'url', 'src'];
+    
+    Object.keys(obj).forEach(key => {
+        // 如果字段名包含常见图片字段，且值是字符串
+        if (imageFields.some(field => key.toLowerCase().includes(field)) && 
+            typeof obj[key] === 'string' && 
+            obj[key].includes('/files/')) {
+            
+            // 如果URL包含localhost，替换为服务器地址
+            if (obj[key].includes('localhost:9090')) {
+                obj[key] = obj[key].replace('http://localhost:9090', import.meta.env.VITE_BASE_URL);
+            }
+            // 如果是相对路径，添加基础URL
+            else if (obj[key].startsWith('/')) {
+                obj[key] = import.meta.env.VITE_BASE_URL + obj[key];
+            }
+        }
+    });
+}
 
 export default request;

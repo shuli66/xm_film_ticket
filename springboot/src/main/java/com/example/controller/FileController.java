@@ -20,7 +20,9 @@ public class FileController {
 
     private static final Logger log = LoggerFactory.getLogger(FileController.class);
 
-    private static final String filePath = System.getProperty("user.dir") + "/files/";
+    // 修改为配置项，不再硬编码
+    @Value("${file.upload-dir:/usr/share/nginx/files/}")
+    private String uploadPath;
 
     @Value("${fileBaseUrl:}")
     private String fileBaseUrl;
@@ -32,22 +34,22 @@ public class FileController {
     public Result upload(MultipartFile file) {
         String fileName = file.getOriginalFilename();
         try {
-            if (!FileUtil.isDirectory(filePath)) {
-                FileUtil.mkdir(filePath);
+            if (!FileUtil.isDirectory(uploadPath)) {
+                FileUtil.mkdir(uploadPath);
             }
             fileName = System.currentTimeMillis() + "-" + fileName;
-            String realFilePath = filePath + fileName;
-            // 文件存储形式：时间戳-文件名
+            String realFilePath = uploadPath + fileName;
             FileUtil.writeBytes(file.getBytes(), realFilePath);
         } catch (Exception e) {
             log.error(fileName + "--文件上传失败", e);
         }
-        String url = fileBaseUrl + "/files/download/" + fileName;
+        // 始终返回相对路径，让前端自动拼接环境URL
+        String url = "/files/download/" + fileName;
         return Result.success(url);
     }
 
     /**
-     * 获取文件
+     * 获取文件 - 仅在开发环境使用，生产环境由Nginx直接提供文件
      */
     @GetMapping("/download/{fileName}")
     public void download(@PathVariable String fileName, HttpServletResponse response) {
@@ -56,7 +58,7 @@ public class FileController {
             if (StrUtil.isNotEmpty(fileName)) {
                 response.addHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
                 response.setContentType("application/octet-stream");
-                byte[] bytes = FileUtil.readBytes(filePath + fileName);
+                byte[] bytes = FileUtil.readBytes(uploadPath + fileName);
                 os = response.getOutputStream();
                 os.write(bytes);
                 os.flush();

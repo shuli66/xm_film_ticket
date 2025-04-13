@@ -1,6 +1,9 @@
 server:
   port: 9090
 
+# 文件上传配置
+file:
+  upload-dir: ${user.dir}/files/  # 开发环境下保存在项目目录
 # 数据库配置
 spring:
   datasource:
