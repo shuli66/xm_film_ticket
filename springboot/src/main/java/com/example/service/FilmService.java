@@ -12,7 +12,7 @@ import com.example.mapper.AreaMapper;
 import com.example.mapper.FilmMapper;
 import com.example.mapper.TypeMapper;
 import com.github.pagehelper.PageHelper;
-import com.github.pagehelper.PageInfo;;
+import com.github.pagehelper.PageInfo;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import java.util.ArrayList;
