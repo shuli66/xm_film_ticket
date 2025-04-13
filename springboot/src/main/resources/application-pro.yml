@@ -3,7 +3,7 @@ server:
 
 # 文件上传配置
 file:
-  upload-dir: /usr/share/nginx/files/  # 生产环境保存到Nginx静态目录
+  upload-dir: /upload/files/  # 使用中立路径，不与nginx路径绑定
 
 # 数据库配置
 spring:
