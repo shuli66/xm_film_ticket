@@ -40,6 +40,15 @@ export const getFullImageUrl = (url) => {
 request.interceptors.request.use(config => {
     config.headers['Content-Type'] = 'application/json;charset=utf-8';
     
+    // 登录页面不需要token，直接放行所有请求
+    if (window.location.pathname.endsWith('/login')) {
+        // 清除登录页上的状态
+        if (localStorage.getItem('xm-user')) {
+            localStorage.removeItem('xm-user');
+        }
+        return config;
+    }
+    
     // 检查是否为不需要token的请求
     const isExcluded = excludeTokenUrls.some(url => config.url.includes(url));
     if (isExcluded) {
@@ -112,8 +121,8 @@ request.interceptors.response.use(
             }
         }
         
-        // 处理token验证失败
-        if (res.code === '401') {
+        // 处理token验证失败（401或403都表示权限问题）
+        if (res.code === '401' || res.code === '403' || res.code === 401 || res.code === 403) {
             // 防止重复提示和重复跳转
             if (!isTokenExpired && !isRedirecting) {
                 isTokenExpired = true;  // 标记为 token 已失效
@@ -134,7 +143,7 @@ request.interceptors.response.use(
                     isRedirecting = false;   // 恢复跳转标志
                 }, 2000);  // 延时恢复，防止重复操作
             }
-            // 对于401错误，返回一个已处理的结果，避免页面组件继续处理
+            // 对于401/403错误，返回一个已处理的结果，避免页面组件继续处理
             return Promise.reject('token已失效，请求已取消');
         }
         
@@ -171,21 +180,49 @@ function processImageUrls(obj) {
     if (!obj || typeof obj !== 'object') return;
     
     // 常见的图片URL字段名
-    const imageFields = ['img', 'image', 'avatar', 'poster', 'cover', 'photo', 'url', 'src'];
+    const imageFields = ['img', 'image', 'avatar', 'poster', 'cover', 'photo', 'url', 'src', 'picture', 'thumbnail', 'icon'];
     
     Object.keys(obj).forEach(key => {
-        // 如果字段名包含常见图片字段，且值是字符串
+        // 如果字段名包含常见图片字段，且值是字符串且不为空
         if (imageFields.some(field => key.toLowerCase().includes(field)) && 
             typeof obj[key] === 'string' && 
-            obj[key].includes('/files/')) {
+            obj[key] && 
+            !obj[key].startsWith('data:')) { // 排除base64图片
             
-            // 如果URL包含localhost，替换为服务器地址
-            if (obj[key].includes('localhost:9090')) {
-                obj[key] = obj[key].replace('http://localhost:9090', import.meta.env.VITE_BASE_URL);
+            // 处理完整URL情况 - 首先检查是否包含localhost
+            if (obj[key].includes('localhost')) {
+                // 使用正则表达式匹配所有localhost格式（包括不同端口）
+                obj[key] = obj[key].replace(/https?:\/\/localhost(:[0-9]+)?/g, import.meta.env.VITE_BASE_URL);
+                return;
             }
-            // 如果是相对路径，添加基础URL
-            else if (obj[key].startsWith('/')) {
+            
+            // 完整URLs不处理（除了localhost）
+            if (obj[key].startsWith('http://') || obj[key].startsWith('https://')) {
+                return;
+            }
+            
+            // 处理以/files/开头的路径
+            if (obj[key].startsWith('/files/')) {
                 obj[key] = import.meta.env.VITE_BASE_URL + obj[key];
+                return;
+            }
+            
+            // 处理其他相对路径
+            if (obj[key].startsWith('/')) {
+                obj[key] = import.meta.env.VITE_BASE_URL + obj[key];
+                return;
+            }
+            
+            // 处理不带/的文件名 (补充完整路径)
+            if (!obj[key].includes('/') && (
+                obj[key].endsWith('.jpg') || 
+                obj[key].endsWith('.jpeg') || 
+                obj[key].endsWith('.png') || 
+                obj[key].endsWith('.gif') || 
+                obj[key].endsWith('.webp')
+            )) {
+                obj[key] = `${import.meta.env.VITE_BASE_URL}/files/download/${obj[key]}`;
+                return;
             }
         }
     });

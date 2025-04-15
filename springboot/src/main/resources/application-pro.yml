@@ -3,7 +3,7 @@ server:
 
 # 文件上传配置
 file:
-  upload-dir: /upload/files/  # 使用中立路径，不与nginx路径绑定
+  upload-dir: /usr/share/nginx/files/  # 与Nginx路径保持一致
 
 # 数据库配置
 spring:
@@ -11,7 +11,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: 123456
-    url: jdbc:mysql://8.130.169.157:3306/xm_film_ticket?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&useSSL=false&serverTimezone=GMT%2b8&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://mysql:3306/xm_film_ticket?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&useSSL=false&serverTimezone=GMT%2b8&allowPublicKeyRetrieval=true
   servlet:
     multipart:
       max-file-size: 1000MB
@@ -24,7 +24,8 @@ spring:
 # 配置mybatis实体和xml映射
 mybatis:
   configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 移除详细SQL日志输出，通过logback配置控制
+    # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     map-underscore-to-camel-case: true
   mapper-locations: classpath:mapper/*.xml
 

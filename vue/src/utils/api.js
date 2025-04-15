@@ -136,7 +136,7 @@ const fileApi = {
 
 // 推荐相关接口
 const recommendationApi = {
-  getRecommendations: (userId) => request.get(`/api/recommendations/${userId}`),
+  getRecommendations: (userId) => request.get(`/recommendations/${userId}`),
 };
 
 // 年份接口

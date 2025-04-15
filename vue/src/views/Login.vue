@@ -112,6 +112,28 @@ onMounted(() => {
   setTimeout(() => {
     showContent.value = true;
   }, 300);
+  
+  // 在登录页清除可能存在的不合法token，解决刷新问题
+  // 检查URL中是否有错误参数
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('auth_error') === 'true' || urlParams.get('expired') === 'true') {
+    localStorage.removeItem('xm-user');
+    ElMessage.error('您的登录已过期，请重新登录');
+  }
+  
+  // 登录页面刷新时检查和清理token状态
+  // 这可以避免登录页上有效token发起不必要的API请求导致系统异常
+  const currentPath = window.location.pathname;
+  if (currentPath.endsWith('/login')) {
+    // 清除可能的请求状态和本地存储
+    localStorage.removeItem('xm-user');
+    
+    // 清除URL中可能存在的异常状态参数
+    if (window.location.search) {
+      const cleanURL = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanURL);
+    }
+  }
 });
 
 const data = reactive({

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 日志存放路径 - 容器内路径 -->
+    <property name="log.path" value="/app/logs" />
+    <!-- 日志输出格式 -->
+    <property name="log.pattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
+
+    <!-- 控制台输出 -->
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${log.pattern}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 应用日志文件 -->
+    <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.path}/app.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${log.path}/app.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>15</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${log.pattern}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 减少MyBatis的日志输出 -->
+    <logger name="org.apache.ibatis" level="WARN" />
+    <logger name="org.mybatis.spring" level="WARN" />
+    <logger name="com.zaxxer.hikari" level="WARN" />
+    
+    <!-- 减少Spring框架的日志输出 -->
+    <logger name="org.springframework" level="WARN" />
+    
+    <!-- 项目自身的日志级别 -->
+    <logger name="com.example" level="INFO" />
+    
+    <!-- MyBatis SQL日志，生产环境设为WARN -->
+    <logger name="com.example.mapper" level="WARN" />
+
+    <!-- 根日志级别 -->
+    <root level="INFO">
+        <appender-ref ref="console" />
+        <appender-ref ref="file" />
+    </root>
+</configuration> 
