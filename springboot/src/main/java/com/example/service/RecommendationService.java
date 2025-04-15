@@ -4,6 +4,8 @@ import cn.hutool.json.JSONUtil;
 import com.example.entity.Comment;
 import com.example.entity.Film;
 import com.example.entity.Score;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +14,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class RecommendationService {
+    private static final Logger logger = LoggerFactory.getLogger(RecommendationService.class);
 
     @Autowired
     private FilmService filmService;
@@ -159,6 +162,7 @@ public class RecommendationService {
         // 获取用户收藏的电影
         List<Film> userCollectedFilms = filmService.getFilmsByUserId(userId);
         if (userCollectedFilms.isEmpty()) {
+            logger.info("用户 {} 没有收藏电影，无法进行基于内容的推荐", userId);
             return recommendations;
         }
 
@@ -187,31 +191,61 @@ public class RecommendationService {
             }
         }
 
+        logger.info("用户 {} 基于内容推荐获取到 {} 部电影", userId, recommendations.size());
         return recommendations;
     }
 
     // 综合推荐方法
     public List<Film> recommendFilmsByUser(Integer userId) {
+        logger.info("开始为用户 {} 生成电影推荐", userId);
         List<Film> allFilms = filmService.selectAll(new Film());
+        if (allFilms == null || allFilms.isEmpty()) {
+            logger.warn("系统中没有可用的电影数据");
+            return new ArrayList<>();
+        }
+        logger.info("系统中共有 {} 部电影可供推荐", allFilms.size());
+        
         Map<Integer, Map<Integer, Double>> userFilmRatings = getUserFilmRatings();
         
         // 1. 获取基于内容的推荐
         List<Film> contentBasedRecommendations = getContentBasedRecommendations(userId, allFilms);
         
+        // 处理新用户情况：如果无法获取基于内容的推荐（因为用户没有收藏电影）
+        // 则提供热门推荐（评分最高的电影）
+        if (contentBasedRecommendations.isEmpty()) {
+            logger.info("用户 {} 是新用户或没有收藏记录，尝试获取评分最高的电影", userId);
+            List<Film> topFilms = filmService.selectScoreTop10();
+            if (topFilms != null && !topFilms.isEmpty()) {
+                // 将评分最高的电影添加到推荐中
+                logger.info("为新用户 {} 添加 {} 部评分最高的电影", userId, topFilms.size());
+                contentBasedRecommendations.addAll(topFilms);
+            } else {
+                logger.warn("未能获取评分最高的电影数据");
+            }
+        }
+        
         // 2. 获取协同过滤推荐
         List<Film> collaborativeRecommendations = new ArrayList<>();
         Map<Integer, Double> filmScores = new HashMap<>();
         
-        for (Film film : allFilms) {
-            if (contentBasedRecommendations.stream().anyMatch(f -> f.getId().equals(film.getId()))) {
-                continue; // 跳过基于内容推荐的电影
+        // 检查用户是否存在于评分矩阵中（新用户可能不存在）
+        boolean userHasRatings = userFilmRatings.containsKey(userId) && !userFilmRatings.get(userId).isEmpty();
+        logger.info("用户 {} 是否有评分记录: {}", userId, userHasRatings);
+        
+        if (userHasRatings) {
+            logger.info("尝试为用户 {} 生成协同过滤推荐", userId);
+            for (Film film : allFilms) {
+                if (contentBasedRecommendations.stream().anyMatch(f -> f.getId().equals(film.getId()))) {
+                    continue; // 跳过基于内容推荐的电影
+                }
+                
+                double predictedScore = predictRating(userId, film.getId(), userFilmRatings);
+                if (predictedScore > 0) {
+                    filmScores.put(film.getId(), predictedScore);
+                    collaborativeRecommendations.add(film);
+                }
             }
-            
-            double predictedScore = predictRating(userId, film.getId(), userFilmRatings);
-            if (predictedScore > 0) {
-                filmScores.put(film.getId(), predictedScore);
-                collaborativeRecommendations.add(film);
-            }
+            logger.info("协同过滤推荐获取到 {} 部电影", collaborativeRecommendations.size());
         }
         
         // 3. 合并推荐结果并排序
@@ -222,11 +256,57 @@ public class RecommendationService {
             Double.compare(filmScores.get(f2.getId()), filmScores.get(f1.getId())));
         
         finalRecommendations.addAll(collaborativeRecommendations);
+        logger.info("综合推荐初步结果: {} 部电影", finalRecommendations.size());
+        
+        // 如果综合推荐结果仍然为空，添加票房排行榜和高评分电影
+        if (finalRecommendations.isEmpty()) {
+            logger.info("推荐结果为空，尝试添加票房排行榜电影");
+            // 添加票房排行榜电影
+            List<Film> popularFilms = filmService.selectTotalTop10();
+            if (popularFilms != null && !popularFilms.isEmpty()) {
+                logger.info("添加 {} 部票房排行榜电影", popularFilms.size());
+                finalRecommendations.addAll(popularFilms);
+            } else {
+                logger.warn("未能获取票房排行榜电影数据");
+            }
+            
+            // 如果仍然没有推荐，添加评分最高的电影（可能与之前的 topFilms 重复，但为了确保有推荐）
+            if (finalRecommendations.isEmpty()) {
+                logger.info("尝试添加评分最高的电影");
+                List<Film> topRatedFilms = filmService.selectScoreTop10();
+                if (topRatedFilms != null && !topRatedFilms.isEmpty()) {
+                    logger.info("添加 {} 部评分最高的电影", topRatedFilms.size());
+                    finalRecommendations.addAll(topRatedFilms);
+                } else {
+                    logger.warn("未能获取评分最高的电影数据");
+                }
+            }
+            
+            // 如果经过所有尝试后仍然没有推荐，则返回所有可用的电影
+            if (finalRecommendations.isEmpty() && !allFilms.isEmpty()) {
+                // 限制返回数量，避免返回过多电影
+                logger.info("作为最后手段，添加前10部可用电影");
+                finalRecommendations.addAll(allFilms.stream()
+                        .limit(10)
+                        .collect(Collectors.toList()));
+            }
+        }
+        
+        // 确保新用户一定有推荐结果
+        if (finalRecommendations.isEmpty()) {
+            logger.warn("所有推荐尝试均失败，返回前8部电影作为默认推荐");
+            return allFilms.stream()
+                    .limit(8)
+                    .collect(Collectors.toList());
+        }
         
         // 4. 限制推荐数量
         final int MAX_RECOMMENDATIONS = 8;
-        return finalRecommendations.stream()
+        List<Film> result = finalRecommendations.stream()
                 .limit(MAX_RECOMMENDATIONS)
                 .collect(Collectors.toList());
+        
+        logger.info("最终为用户 {} 推荐 {} 部电影", userId, result.size());
+        return result;
     }
 }

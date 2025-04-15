@@ -23,6 +23,7 @@ mybatis:
   configuration:
     # 开发环境可以保留SQL日志，但通过logback控制输出级别
     # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl # 明确使用无日志实现
     map-underscore-to-camel-case: true
   mapper-locations: classpath:mapper/*.xml
 

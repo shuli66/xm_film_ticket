@@ -12,6 +12,15 @@ spring:
     username: root
     password: 123456
     url: jdbc:mysql://mysql:3306/xm_film_ticket?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&useSSL=false&serverTimezone=GMT%2b8&allowPublicKeyRetrieval=true
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 15
+      auto-commit: true
+      idle-timeout: 30000
+      pool-name: HikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
   servlet:
     multipart:
       max-file-size: 1000MB
@@ -19,13 +28,35 @@ spring:
   jackson:
     time-zone: Asia/Shanghai
 
-
+# 日志配置
+logging:
+  level:
+    root: warn
+    com.example: info
+    org.mybatis: off
+    org.springframework: error
+    org.apache.ibatis: off
+    com.zaxxer.hikari: off
+    org.hibernate.SQL: off
+    org.hibernate.type: off
+    java.sql: off
+    javax.sql: off
+    jdbc: off
+    com.example.mapper: off
+    org.mybatis.spring: off
+    org.mybatis.spring.SqlSessionUtils: off
+    org.apache.ibatis.session: off
+    org.apache.ibatis.logging: off
+  # 关闭控制台日志的彩色输出，以避免多余的ANSI转义字符
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
 # 配置mybatis实体和xml映射
 mybatis:
   configuration:
-    # 移除详细SQL日志输出，通过logback配置控制
-    # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 完全禁用SQL日志
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
     map-underscore-to-camel-case: true
   mapper-locations: classpath:mapper/*.xml
 

@@ -26,8 +26,16 @@ services:
     volumes:
       - /root/nginx/files:/usr/share/nginx/files  # 文件上传目录
       - /root/java_project:/app/logs  # 日志目录挂载
+    environment:
+      - SPRING_PROFILES_ACTIVE=pro  # 使用生产环境配置
+      - JAVA_OPTS=-Xmx512m -Xms256m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8 -Dlogging.level.org.mybatis=ERROR -Dlogging.level.org.springframework=ERROR
     depends_on: # 依赖与mysql、redis，其实可以不填，默认已经表示可以
       - mysql
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  # 每个日志文件最大大小
+        max-file: "3"    # 最多保留3个日志文件
 
 # 定义持久化卷
 volumes:
