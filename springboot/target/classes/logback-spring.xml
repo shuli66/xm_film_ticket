@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 日志存放路径 - 容器内路径 -->
+    <property name="log.path" value="/app/logs" />
+    <!-- 日志输出格式 -->
+    <property name="log.pattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
+
+    <!-- 控制台输出 -->
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <encoder>
+            <pattern>${log.pattern}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 应用日志文件 -->
+    <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.path}/app.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${log.path}/app.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>15</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${log.pattern}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 完全抑制MyBatis的输出 -->
+    <logger name="org.apache.ibatis" level="OFF" />
+    <logger name="org.mybatis" level="OFF" />
+    <logger name="org.mybatis.spring" level="OFF" />
+    <logger name="com.zaxxer.hikari" level="ERROR" />
+    
+    <!-- 完全抑制Spring框架的非关键日志 -->
+    <logger name="org.springframework" level="ERROR" />
+    <logger name="org.springframework.jdbc" level="OFF" />
+    <logger name="org.springframework.transaction" level="OFF" />
+    
+    <!-- SQL会话和事务日志 -->
+    <logger name="org.mybatis.spring.SqlSessionUtils" level="OFF" />
+    <logger name="org.mybatis.spring.transaction" level="OFF" />
+    <logger name="org.apache.ibatis.session" level="OFF" />
+    <logger name="org.apache.ibatis.logging" level="OFF" />
+    
+    <!-- Hibernate SQL日志 -->
+    <logger name="org.hibernate.SQL" level="OFF" />
+    <logger name="org.hibernate.type" level="OFF" />
+    
+    <!-- 项目自身的日志级别 -->
+    <logger name="com.example" level="INFO" />
+    <logger name="com.example.mapper" level="OFF" />
+    
+    <!-- 将所有SQL相关日志关闭 -->
+    <logger name="java.sql" level="OFF" />
+    <logger name="javax.sql" level="OFF" />
+    <logger name="jdbc" level="OFF" />
+    <logger name="jdbc.sqlonly" level="OFF" />
+    <logger name="jdbc.sqltiming" level="OFF" />
+    <logger name="jdbc.resultsettable" level="OFF" />
+    <logger name="jdbc.resultset" level="OFF" />
+    <logger name="jdbc.connection" level="OFF" />
+    <logger name="jdbc.audit" level="OFF" />
+    
+    <!-- 数据库连接池日志 -->
+    <logger name="com.zaxxer.hikari.pool" level="OFF" />
+    <logger name="com.mysql" level="OFF" />
+
+    <!-- 根日志级别 -->
+    <root level="WARN">
+        <appender-ref ref="console" />
+        <appender-ref ref="file" />
+    </root>
+</configuration> 
