@@ -100,18 +100,6 @@ public class UserController {
         return Result.success();
     }
 
-    @PostMapping("/sendCode")
-    public Result sendCode(@RequestBody Map<String, String> data) {
-        String phone = data.get("phone");
-        if (StringUtils.isEmpty(phone)) {
-            return Result.error(ResultCodeEnum.PARAM_ERROR.code, "手机号不能为空");
-        }
-        // 生成6位随机验证码
-        String code = String.format("%06d", new Random().nextInt(1000000));
-        // TODO: 这里应该调用短信服务发送验证码，这里先模拟发送
-        // 实际项目中应该将验证码存入Redis，并设置过期时间
-        return Result.success(code);
-    }
 
     @PostMapping("/resetPassword")
     public Result resetPassword(@RequestBody Map<String, String> data) {

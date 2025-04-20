@@ -97,10 +97,21 @@ router.beforeEach((to, from, next) => {
     }
   } else {
     // 已登录且需要检查角色权限
-    if (to.meta.roles && isLoggedIn) {
+    if (isLoggedIn) {
+      // 检查用户是否尝试访问前台页面，但实际是管理员或影院角色
+      if (to.path === '/front/home' && (user.role === 'ADMIN' || user.role === 'CINEMA')) {
+        // 根据角色重定向到正确的首页
+        if (user.role === 'ADMIN') {
+          next('/manager/adminHome');
+          return;
+        } else if (user.role === 'CINEMA') {
+          next('/manager/home');
+          return;
+        }
+      }
+      
       // 检查用户角色是否满足访问要求
-      const hasPermission = to.meta.roles.includes(user.role);
-      if (!hasPermission) {
+      if (to.meta.roles && !to.meta.roles.includes(user.role)) {
         console.warn("没有访问权限");
         next('/404');
         return;

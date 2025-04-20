@@ -257,7 +257,7 @@
                 <div class="comment-content">{{ comment.commentText }}</div>
                 <div class="comment-footer">
                   <el-button type="text" class="comment-like-btn">
-                    <el-icon><ThumbsUp /></el-icon>
+                    <el-icon><Star /></el-icon>
                     <span>有用</span>
                   </el-button>
                 </div>
@@ -314,10 +314,14 @@
 </template>
 
 <script setup>
-import {reactive, ref} from "vue";
+import {reactive, ref, defineEmits} from "vue";
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
 import router from "@/router/index.js";
+import { Star } from '@element-plus/icons-vue';
+
+// 声明组件可接收的事件
+const emit = defineEmits(['updateUser']);
 
 // 添加时间格式化函数
 const formatTime = (time) => {
@@ -353,9 +357,7 @@ const data = reactive({
   isCommenting: false,         // 防止重复提交评论
 })
 
-
 // 加载电影评论数据
-
 const loadComments = () => {
   request.get('/comment/selectComments', {
     params: {
@@ -376,7 +378,6 @@ const loadComments = () => {
     console.error(error);
   });
 };
-
 
 // 删除评论
 const deleteComment = (commentId) => {
@@ -400,11 +401,6 @@ const deleteComment = (commentId) => {
     console.error(error);
   });
 };
-
-
-
-
-
 
 // 提交新评论
 const submitComment = () => {
@@ -440,14 +436,7 @@ const submitComment = () => {
   });
 };
 
-
-
-
 loadComments();  // 加载评论数据
-
-
-
-
 
 const loadTodayPrice = () => {
   request.get('/orders/selectTodayPrice/' + data.filmId).then(res => {

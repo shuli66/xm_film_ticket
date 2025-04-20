@@ -1,10 +1,16 @@
-#依赖jdk17环境
-FROM myopenjdk:17
+FROM openjdk:17-jdk-slim
 
-#对外暴露9090
+WORKDIR /app
+
+# 将打包的jar文件复制到容器中
+COPY springboot/target/springboot-0.0.1-SNAPSHOT.jar app.jar
+
+# 设置时区
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone
+
+# 暴露应用端口
 EXPOSE 9090
-#复制构建好的jar包到docker容器中并命名为app.jar
-ADD springboot-0.0.1-SNAPSHOT.jar app.jar
-#执行命令
-RUN bash -c 'touch /app.jar'
-ENTRYPOINT ["java", "-jar", "/app.jar", "--spring.profiles.active=pro"]
+
+# 启动命令，添加生产环境配置
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=pro"]

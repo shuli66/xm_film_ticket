@@ -25,6 +25,22 @@ export default {
             if (router.currentRoute.value.meta.requiresAuth) {
               router.push('/login');
             }
+          } else {
+            // 校验当前路由与用户角色，确保用户在刷新后进入正确的页面
+            const currentPath = router.currentRoute.value.path;
+            
+            // 如果在根路径或前台首页但用户是管理员或影院角色，则重定向到相应页面
+            if ((currentPath === '/' || currentPath === '/front/home') && 
+                (user.role === 'ADMIN' || user.role === 'CINEMA')) {
+              // 延迟执行以避免可能的路由冲突
+              setTimeout(() => {
+                if (user.role === 'ADMIN') {
+                  router.push('/manager/adminHome');
+                } else if (user.role === 'CINEMA') {
+                  router.push('/manager/home');
+                }
+              }, 100);
+            }
           }
         } catch (e) {
           console.error('解析用户数据失败', e);

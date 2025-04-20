@@ -47,10 +47,7 @@ public enum ResultCodeEnum {
     PAY_RUN("220", "支付中"),
     CANCEL_ORDER_FAIL("225", "取消订单失败"),
     CANCEL_ORDER_NO("225", "不能取消预约"),
-    
-    HOSCODE_EXIST("230", "医院编号已经存在"),
-    NUMBER_NO("240", "可预约号不足"),
-    TIME_NO("250", "当前时间不可以预约"),
+
     
     SIGN_ERROR("300", "签名错误"),
     USER_PERMISSION_ERROR("5005", "用户权限不足"),

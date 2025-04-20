@@ -292,7 +292,7 @@ const loadNotice = () => {
       }, 300);
     }
   }).catch(err => {
-    console.error("加载公告失败", err);
+    // console.error("加载公告失败", err);
   });
 }
 

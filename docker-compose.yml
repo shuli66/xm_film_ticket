@@ -18,6 +18,13 @@ services:
     command: --default-authentication-plugin=mysql_native_password  # 使用旧的认证插件
     volumes:
       - mysql_data:/var/lib/mysql  # 持久化MySQL数据
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+    command: redis-server --appendonly yes  # 启用AOF持久化
+    volumes:
+      - redis_data:/data  # 持久化Redis数据
   springboot:
     image: springboot:latest
     build: . # 表示以当前目录下的Dockerfile开始构建镜像
@@ -31,6 +38,7 @@ services:
       - JAVA_OPTS=-Xmx512m -Xms256m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8 -Dlogging.level.org.mybatis=ERROR -Dlogging.level.org.springframework=ERROR
     depends_on: # 依赖与mysql、redis，其实可以不填，默认已经表示可以
       - mysql
+      - redis
     logging:
       driver: "json-file"
       options:
@@ -40,3 +48,4 @@ services:
 # 定义持久化卷
 volumes:
   mysql_data:  # MySQL数据持久化
+  redis_data:  # Redis数据持久化

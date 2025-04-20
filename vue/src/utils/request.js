@@ -7,14 +7,30 @@ let isTokenExpired = false;
 let isRedirecting = false;
 
 // 创建需要排除token验证的URL列表
+// 这些URL不需要携带Token就能访问，特别适用于登录、注册和验证码相关操作
 const excludeTokenUrls = [
-    '/login', 
-    '/register', 
-    '/user/resetPassword',
-    '/user/checkUsername',
-    '/user/checkPhone',
-    '/user/sendCode'
+    // 核心认证操作
+    '/login',                      // 用户登录接口
+    '/register',                   // 用户注册接口
+    
+    // 用户信息相关不需要认证的接口
+    '/user/resetPassword',         // 重置密码
+    '/user/checkUsername',         // 检查用户名是否存在
+    '/user/checkPhone',            // 检查手机号是否存在
+    '/user/sendCode',              // 发送手机验证码
+    
+    // 邮箱验证相关接口 - 邮箱验证必须无需Token
+    '/email/sendVerificationCode', // 发送邮箱验证码
+    '/email/verifyCode',           // 验证邮箱验证码
+    
+    // 其他公共接口
+    '/files/upload',               // 文件上传
+    '/files/download'              // 文件下载
 ];
+
+// 针对生产环境添加控制台调试日志
+// 设置为true开启详细日志，生产环境问题排查后应设置回false
+const ENABLE_DEBUG = true;
 
 const request = axios.create({
     baseURL: import.meta.env.VITE_BASE_URL,
@@ -46,12 +62,14 @@ request.interceptors.request.use(config => {
         if (localStorage.getItem('xm-user')) {
             localStorage.removeItem('xm-user');
         }
+        if (ENABLE_DEBUG) console.log('登录页面请求，直接放行:', config.url);
         return config;
     }
     
     // 检查是否为不需要token的请求
     const isExcluded = excludeTokenUrls.some(url => config.url.includes(url));
     if (isExcluded) {
+        if (ENABLE_DEBUG) console.log('白名单请求，无需Token:', config.url);
         return config;
     }
     
@@ -60,6 +78,9 @@ request.interceptors.request.use(config => {
     
     // 如果用户未登录且请求需要token
     if (!user || !user.token) {
+        // 详细记录无Token的请求
+        if (ENABLE_DEBUG) console.error('请求需要Token但未找到:', config.url, '用户状态:', !!user);
+        
         // 如果已经在重定向到登录页面，则不再重复处理
         if (isRedirecting) {
             return Promise.reject('正在跳转到登录页，请求已取消');
@@ -81,10 +102,12 @@ request.interceptors.request.use(config => {
     } else {
         // 用户已登录，添加token
         config.headers['token'] = user.token;
+        if (ENABLE_DEBUG) console.log('Token已添加到请求:', config.url, '(部分Token):', user.token.substring(0, 10) + '...');
     }
     
     return config;
 }, error => {
+    if (ENABLE_DEBUG) console.error('请求拦截器错误:', error);
     return Promise.reject(error);
 });
 

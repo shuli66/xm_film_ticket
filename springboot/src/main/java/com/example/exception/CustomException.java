@@ -2,7 +2,6 @@ package com.example.exception;
 
 import com.example.common.enums.ResultCodeEnum;
 import lombok.Getter;
-
 @Getter
 public class CustomException extends RuntimeException {
 

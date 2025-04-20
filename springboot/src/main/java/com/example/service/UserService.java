@@ -10,12 +10,14 @@ import com.example.entity.User;
 import com.example.exception.CustomException;
 import com.example.mapper.ScoreMapper;
 import com.example.mapper.UserMapper;
+import com.example.utils.RedisUtils;
 import com.example.utils.TokenUtils;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -30,6 +32,9 @@ public class UserService {
 
     @Resource
     private ScoreMapper scoreMapper;
+
+    @Resource
+    private RedisUtils redisUtils;
 
     public void add(User user) {
         User dbUser = userMapper.selectByUsername(user.getUsername());
@@ -122,6 +127,29 @@ public class UserService {
         if (user != null) {
             throw new CustomException(ResultCodeEnum.USER_EXIST_ERROR);
         }
+        
+        // 验证邮箱验证码
+        String email = account.getEmail();
+        String verificationCode = account.getVerificationCode();
+        
+        if (StringUtils.isEmpty(email) || StringUtils.isEmpty(verificationCode)) {
+            throw new CustomException(ResultCodeEnum.PARAM_ERROR);
+        }
+        
+        // 从Redis中获取验证码
+        String redisKey = "email_code:" + email;
+        Object storedCode = redisUtils.get(redisKey);
+        
+        if (storedCode == null) {
+            throw new CustomException(ResultCodeEnum.CODE_ERROR);
+        }
+        
+        if (!verificationCode.equals(storedCode.toString())) {
+            throw new CustomException(ResultCodeEnum.CODE_ERROR);
+        }
+        
+        // 验证成功后删除Redis中的验证码
+        redisUtils.delete(redisKey);
         
         // 创建新用户
         User newUser = new User();

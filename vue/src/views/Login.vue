@@ -37,7 +37,7 @@
         </el-form-item>
         <div class="login-actions fade-in">
           <el-link type="primary" @click="showForgetPassword" class="custom-link">忘记密码？</el-link>
-          <el-link type="primary" @click="$router.push('/register')" class="custom-link">注册账号</el-link>
+          <el-link type="primary" @click="goToRegister" class="custom-link">注册账号</el-link>
         </div>
       </el-form>
     </div>
@@ -133,6 +133,13 @@ onMounted(() => {
       const cleanURL = window.location.pathname;
       window.history.replaceState({}, document.title, cleanURL);
     }
+  }
+  
+  // 检查是否有来自注册页面的转场状态
+  const fromRegister = sessionStorage.getItem('from_register');
+  if (fromRegister) {
+    // 移除标记
+    sessionStorage.removeItem('from_register');
   }
 });
 
@@ -259,6 +266,20 @@ const resetPassword = () => {
       })
     }
   })
+}
+
+// 添加平滑过渡到注册页面的方法
+const goToRegister = () => {
+  // 设置动画离开效果
+  showContent.value = false;
+  
+  // 设置注册页转场标记
+  sessionStorage.setItem('from_login', 'true');
+  
+  // 延迟导航，等待动画完成
+  setTimeout(() => {
+    router.push('/register');
+  }, 500);
 }
 </script>
 
@@ -400,6 +421,12 @@ const resetPassword = () => {
   opacity: 1;
 }
 
+/* 离场动画效果 */
+.login-container:not(.appear) {
+  transform: translateY(-30px);
+  opacity: 0;
+}
+
 .login-header {
   text-align: center;
   margin-bottom: 35px;
@@ -441,6 +468,21 @@ const resetPassword = () => {
   overflow: hidden;
 }
 
+.login-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.7s ease;
+}
+
+.login-btn:hover::before {
+  left: 100%;
+}
+
 .login-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 7px 14px rgba(0, 123, 255, 0.3);
@@ -480,11 +522,28 @@ const resetPassword = () => {
   text-decoration: none;
   font-size: 14px;
   transition: all 0.3s ease;
+  position: relative;
+}
+
+.custom-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 1px;
+  bottom: -2px;
+  left: 50%;
+  background: currentColor;
+  transition: all 0.3s ease;
 }
 
 .custom-link:hover {
   transform: translateY(-2px);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.custom-link:hover::after {
+  width: 100%;
+  left: 0;
 }
 
 .code-input {
@@ -521,6 +580,12 @@ const resetPassword = () => {
 .custom-dialog :deep(.el-dialog) {
   border-radius: 16px;
   overflow: hidden;
+  transform: translateY(20px);
+  transition: transform 0.3s ease-out;
+}
+
+.custom-dialog :deep(.el-dialog--center) {
+  transform: translateY(0);
 }
 
 .dialog-footer {
@@ -533,6 +598,11 @@ const resetPassword = () => {
 .cancel-btn, .confirm-btn {
   min-width: 100px;
   border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+  transform: translateY(-2px);
 }
 
 .confirm-btn {
@@ -543,6 +613,7 @@ const resetPassword = () => {
 .confirm-btn:hover {
   background: linear-gradient(135deg, #67c23a 0%, #409eff 100%);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
 }
 
 .custom-input {

@@ -7,9 +7,6 @@
 
     <!-- 控制台输出 -->
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>ERROR</level>
-        </filter>
         <encoder>
             <pattern>${log.pattern}</pattern>
             <charset>UTF-8</charset>
@@ -31,49 +28,95 @@
         </encoder>
     </appender>
 
-    <!-- 完全抑制MyBatis的输出 -->
-    <logger name="org.apache.ibatis" level="OFF" />
-    <logger name="org.mybatis" level="OFF" />
-    <logger name="org.mybatis.spring" level="OFF" />
-    <logger name="com.zaxxer.hikari" level="ERROR" />
+    <!-- 开发环境配置 -->
+    <springProfile name="!pro">
+        <!-- 过滤器，仅显示警告和错误 -->
+        <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>WARN</level>
+            </filter>
+            <encoder>
+                <pattern>${log.pattern}</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+        
+        <!-- 项目自身的日志级别 -->
+        <logger name="com.example" level="WARN" />
+        <logger name="com.example.mapper" level="WARN" />
+        
+        <!-- 完全禁止测试框架日志 -->
+        <logger name="org.springframework.test" level="OFF" />
+        <logger name="org.junit" level="OFF" />
+        <logger name="org.mockito" level="OFF" />
+        
+        <!-- 服务器日志 -->
+        <logger name="org.apache.catalina" level="OFF" />
+        <logger name="org.apache.coyote" level="OFF" />
+        <logger name="org.apache.tomcat" level="OFF" />
+        
+        <!-- 网络请求日志 -->
+        <logger name="org.apache.http" level="OFF" />
+        
+        <!-- MyBatis日志，只在特定场景开启 -->
+        <logger name="org.apache.ibatis" level="OFF" />
+        <logger name="org.mybatis" level="OFF" />
+        
+        <!-- 只有特定SQL查询才需要查看 -->
+        <logger name="jdbc.sqlonly" level="WARN" />
+        <logger name="jdbc" level="OFF" />
+        
+        <!-- 根日志级别 -->
+        <root level="ERROR">
+            <appender-ref ref="console" />
+        </root>
+    </springProfile>
     
-    <!-- 完全抑制Spring框架的非关键日志 -->
-    <logger name="org.springframework" level="ERROR" />
-    <logger name="org.springframework.jdbc" level="OFF" />
-    <logger name="org.springframework.transaction" level="OFF" />
-    
-    <!-- SQL会话和事务日志 -->
-    <logger name="org.mybatis.spring.SqlSessionUtils" level="OFF" />
-    <logger name="org.mybatis.spring.transaction" level="OFF" />
-    <logger name="org.apache.ibatis.session" level="OFF" />
-    <logger name="org.apache.ibatis.logging" level="OFF" />
-    
-    <!-- Hibernate SQL日志 -->
-    <logger name="org.hibernate.SQL" level="OFF" />
-    <logger name="org.hibernate.type" level="OFF" />
-    
-    <!-- 项目自身的日志级别 -->
-    <logger name="com.example" level="INFO" />
-    <logger name="com.example.mapper" level="OFF" />
-    
-    <!-- 将所有SQL相关日志关闭 -->
-    <logger name="java.sql" level="OFF" />
-    <logger name="javax.sql" level="OFF" />
-    <logger name="jdbc" level="OFF" />
-    <logger name="jdbc.sqlonly" level="OFF" />
-    <logger name="jdbc.sqltiming" level="OFF" />
-    <logger name="jdbc.resultsettable" level="OFF" />
-    <logger name="jdbc.resultset" level="OFF" />
-    <logger name="jdbc.connection" level="OFF" />
-    <logger name="jdbc.audit" level="OFF" />
-    
-    <!-- 数据库连接池日志 -->
-    <logger name="com.zaxxer.hikari.pool" level="OFF" />
-    <logger name="com.mysql" level="OFF" />
+    <!-- 生产环境配置 -->
+    <springProfile name="pro">
+        <!-- 完全抑制MyBatis的输出 -->
+        <logger name="org.apache.ibatis" level="OFF" />
+        <logger name="org.mybatis" level="OFF" />
+        <logger name="org.mybatis.spring" level="OFF" />
+        <logger name="com.zaxxer.hikari" level="ERROR" />
+        
+        <!-- 完全抑制Spring框架的非关键日志 -->
+        <logger name="org.springframework" level="ERROR" />
+        <logger name="org.springframework.jdbc" level="OFF" />
+        <logger name="org.springframework.transaction" level="OFF" />
+        
+        <!-- SQL会话和事务日志 -->
+        <logger name="org.mybatis.spring.SqlSessionUtils" level="OFF" />
+        <logger name="org.mybatis.spring.transaction" level="OFF" />
+        <logger name="org.apache.ibatis.session" level="OFF" />
+        <logger name="org.apache.ibatis.logging" level="OFF" />
+        
+        <!-- Hibernate SQL日志 -->
+        <logger name="org.hibernate.SQL" level="OFF" />
+        <logger name="org.hibernate.type" level="OFF" />
+        
+        <!-- 项目自身的日志级别 -->
+        <logger name="com.example" level="INFO" />
+        <logger name="com.example.mapper" level="OFF" />
+        
+        <!-- 将所有SQL相关日志关闭 -->
+        <logger name="java.sql" level="OFF" />
+        <logger name="javax.sql" level="OFF" />
+        <logger name="jdbc" level="OFF" />
+        <logger name="jdbc.sqltiming" level="OFF" />
+        <logger name="jdbc.resultsettable" level="OFF" />
+        <logger name="jdbc.resultset" level="OFF" />
+        <logger name="jdbc.connection" level="OFF" />
+        <logger name="jdbc.audit" level="OFF" />
+        
+        <!-- 数据库连接池日志 -->
+        <logger name="com.zaxxer.hikari.pool" level="OFF" />
+        <logger name="com.mysql" level="OFF" />
 
-    <!-- 根日志级别 -->
-    <root level="WARN">
-        <appender-ref ref="console" />
-        <appender-ref ref="file" />
-    </root>
+        <!-- 根日志级别 -->
+        <root level="WARN">
+            <appender-ref ref="console" />
+            <appender-ref ref="file" />
+        </root>
+    </springProfile>
 </configuration> 

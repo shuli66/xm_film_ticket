@@ -18,6 +18,7 @@ public class Account {
     private String back;
     private String certificate;
     private String status;
+    private String verificationCode;
 
     public Integer getId() {
         return id;
@@ -145,5 +146,13 @@ public class Account {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getVerificationCode() {
+        return verificationCode;
+    }
+
+    public void setVerificationCode(String verificationCode) {
+        this.verificationCode = verificationCode;
     }
 }

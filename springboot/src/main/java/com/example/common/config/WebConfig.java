@@ -21,8 +21,10 @@ public class WebConfig implements WebMvcConfigurer {
                         "/",
                         "/login",
                         "/register",
+                        "/email/sendVerificationCode",  // 添加发送验证码接口
+                        "/email/verifyCode",            // 添加验证验证码接口
                         "/files/**",
-                        "/favicon.ico" // 可选：排除请求favicon.ico
+                        "/favicon.ico" // 可选：排除请求favicon.ico图标
                 );
     }
 }

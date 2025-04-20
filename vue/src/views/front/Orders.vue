@@ -169,11 +169,14 @@
 </template>
 
 <script setup>
-import { reactive, ref } from "vue";
+import { reactive, ref, defineEmits } from "vue";
 import request from "@/utils/request.js";
 import { ElMessage, ElNotification } from "element-plus";
 import QrcodeVue from 'qrcode.vue';
 import { paymentApi, orderApi } from "@/utils/api.js";  // 导入API模块
+
+// 定义组件可以触发的事件
+const emit = defineEmits(['updateUser']);
 
 const data = reactive({
   user: JSON.parse(localStorage.getItem('xm-user') || '{}'),
