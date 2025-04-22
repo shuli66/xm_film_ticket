@@ -153,6 +153,12 @@ const noticeApi = {
   delete: (id) => request.delete(`/notice/delete/${id}`),
 };
 
+// 邮箱验证相关接口
+const emailApi = {
+  sendVerificationCode: (data) => request.post('/email/sendVerificationCode', data),
+  verifyCode: (data) => request.post('/email/verifyCode', data),
+};
+
 export {
   baseApiUrl,
   paymentApi,
@@ -172,4 +178,5 @@ export {
   recommendationApi,
   yearApi,
   noticeApi,
+  emailApi,
 }; 

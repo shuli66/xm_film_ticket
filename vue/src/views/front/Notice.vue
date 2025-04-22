@@ -153,7 +153,12 @@ const loadNotice = async () => {
   try {
     const res = await request.get('/notice/selectAll');
     if (res.code === '200') {
-      data.noticeData = res.data.map(notice => ({
+      // 按时间降序排序，最新的在最前面
+      const sortedNotices = [...res.data].sort((a, b) => 
+        new Date(b.time) - new Date(a.time)
+      );
+      
+      data.noticeData = sortedNotices.map(notice => ({
         ...notice,
         important: Math.random() < 0.3 // 示例：随机标记一些公告为重要
       }));

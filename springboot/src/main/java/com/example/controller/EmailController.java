@@ -37,18 +37,26 @@ public class EmailController {
     @PostMapping("/sendVerificationCode")
     public Result sendVerificationCode(@RequestBody Map<String, String> data) {
         String email = data.get("email");
+        // 记录请求来源的详细信息
+        logger.info("收到发送验证码请求: 目标邮箱={}, 当前环境={}", 
+                email, 
+                System.getProperty("spring.profiles.active", "dev"));
+            
         if (StringUtils.isEmpty(email)) {
+            logger.warn("邮箱为空，拒绝请求");
             return Result.error(ResultCodeEnum.PARAM_ERROR.code, "邮箱不能为空");
         }
         
         // 验证邮箱格式
         if (!email.matches("^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\\.[a-zA-Z0-9-]+)*\\.[a-zA-Z0-9]{2,6}$")) {
+            logger.warn("邮箱格式不正确: {}", email);
             return Result.error(ResultCodeEnum.PARAM_ERROR.code, "邮箱格式不正确");
         }
         
         // 检查是否频繁发送
         String rateLimitKey = "email_rate_limit:" + email;
         if (redisUtils.hasKey(rateLimitKey)) {
+            logger.warn("邮箱发送频率限制: {}", email);
             return Result.error(ResultCodeEnum.PARAM_ERROR.code, "发送过于频繁，请稍后再试");
         }
         
@@ -56,6 +64,8 @@ public class EmailController {
         String code = String.format("%06d", new Random().nextInt(1000000));
         
         try {
+            logger.info("准备发送邮箱验证码: 目标邮箱={}, 验证码={}", email, code);
+            
             // 发送邮件
             emailUtils.sendVerificationCodeEmail(email, code);
             
@@ -66,10 +76,10 @@ public class EmailController {
             // 设置发送频率限制（60秒内不能重复发送）
             redisUtils.set(rateLimitKey, "1", 60, TimeUnit.SECONDS);
             
-            logger.info("邮箱验证码已发送至: {}", email);
+            logger.info("邮箱验证码发送成功: {}", email);
             return Result.success();
         } catch (Exception e) {
-            logger.error("发送邮箱验证码失败: {}", e.getMessage(), e);
+            logger.error("发送邮箱验证码失败: 目标邮箱={}, 错误消息={}", email, e.getMessage(), e);
             
             // 根据错误类型返回更友好的提示
             if (e.getMessage() != null && e.getMessage().contains("non-existent account")) {

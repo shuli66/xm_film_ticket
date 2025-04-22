@@ -16,15 +16,21 @@ public class WebConfig implements WebMvcConfigurer {
         // 添加拦截器，拦截所有请求，排除登录、注册和文件相关的请求
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**")  // 拦截所有请求路径
-                .excludePathPatterns("/alipay/notify", "/alipay/pay")
                 .excludePathPatterns(  // 排除的路径
                         "/",
                         "/login",
                         "/register",
-                        "/email/sendVerificationCode",  // 添加发送验证码接口
-                        "/email/verifyCode",            // 添加验证验证码接口
-                        "/files/**",
-                        "/favicon.ico" // 可选：排除请求favicon.ico图标
+                        "/email/sendVerificationCode",  // 邮箱验证码
+                        "/email/verifyCode",            // 验证邮箱验证码
+                        "/user/resetPassword",          // 重置密码
+                        "/user/checkUsername",          // 检查用户名
+                        "/user/checkPhone",             // 检查手机号
+                        "/user/sendCode",               // 发送短信验证码
+                        "/map/**",                      // 地图相关接口
+                        "/alipay/notify",               // 支付宝回调
+                        "/alipay/pay",                  // 支付宝支付
+                        "/files/**",                    // 静态文件
+                        "/favicon.ico"                  // 图标文件
                 );
     }
 }

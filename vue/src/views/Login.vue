@@ -3,43 +3,195 @@
     <!-- 导入雪花效果组件 -->
     <SnowEffect />
     
-    <!-- 添加一些动态装饰元素 -->
-    <div class="floating-circles">
-      <div class="circle circle-1"></div>
-      <div class="circle circle-2"></div>
-      <div class="circle circle-3"></div>
+    <!-- 顶部导航 -->
+    <div class="top-nav" :class="{ 'scrolled': isScrolled }">
+      <div class="logo">
+        <div class="logo-cinema"></div>
+        <span class="logo-text">电影购票系统</span>
+      </div>
+      <div class="nav-links">
+        <div class="nav-item" @click="goToHome">
+          <i class="el-icon-house"></i>
+          首页
+        </div>
+        <div class="nav-item" @click="goToRegister">
+          <i class="el-icon-user-solid"></i>
+          注册
+        </div>
+        <div class="nav-item active">
+          <i class="el-icon-key"></i>
+          登录
+        </div>
+      </div>
     </div>
     
-    <div class="login-container" :class="{ 'appear': showContent }">
-      <div class="login-header">
-        <h2 class="fade-in-down">欢迎登录电影购票系统</h2>
-        <div class="underline"></div>
-      </div>
-      <el-form ref="formRef" :model="data.form" :rules="data.rules" class="fade-in-up">
-        <el-form-item prop="username">
-          <el-input :prefix-icon="User" size="large" v-model="data.form.username" placeholder="请输入账号" class="custom-input"></el-input>
-        </el-form-item>
-        <el-form-item prop="password">
-          <el-input show-password :prefix-icon="Lock" size="large" v-model="data.form.password" placeholder="请输入密码" class="custom-input"></el-input>
-        </el-form-item>
-        <el-form-item prop="role">
-          <el-select size="large" v-model="data.form.role" placeholder="请选择角色" class="custom-select">
-            <el-option value="ADMIN" label="管理员"></el-option>
-            <el-option value="CINEMA" label="电影院"></el-option>
-            <el-option value="USER" label="用户"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button size="large" type="primary" class="login-btn" @click="login" :class="{ 'button-loading': data.loading }">
-            <span v-if="!data.loading">登 录</span>
-            <span v-else class="loading-spinner"></span>
-          </el-button>
-        </el-form-item>
-        <div class="login-actions fade-in">
-          <el-link type="primary" @click="showForgetPassword" class="custom-link">忘记密码？</el-link>
-          <el-link type="primary" @click="goToRegister" class="custom-link">注册账号</el-link>
+    <!-- 主要内容区域 -->
+    <div class="content-wrapper">
+      <!-- 登录表单区域 -->
+      <div class="login-container" :class="{ 'appear': showContent }">
+        <div class="login-header">
+          <h2 class="fade-in-down">欢迎登录电影购票系统</h2>
+          <div class="underline"></div>
+          <p class="login-subtitle fade-in">享受精彩电影，从这里开始</p>
         </div>
-      </el-form>
+        <el-form ref="formRef" :model="data.form" :rules="data.rules" class="fade-in-up">
+          <el-form-item prop="username">
+            <el-input :prefix-icon="User" size="large" v-model="data.form.username" placeholder="请输入账号" class="custom-input"></el-input>
+          </el-form-item>
+          <el-form-item prop="password">
+            <el-input show-password :prefix-icon="Lock" size="large" v-model="data.form.password" placeholder="请输入密码" class="custom-input"></el-input>
+          </el-form-item>
+          <el-form-item prop="role">
+            <el-select size="large" v-model="data.form.role" placeholder="请选择角色" class="custom-select">
+              <el-option value="ADMIN" label="管理员"></el-option>
+              <el-option value="CINEMA" label="电影院"></el-option>
+              <el-option value="USER" label="用户"></el-option>
+            </el-select>
+          </el-form-item>
+          <div class="slider-verify">
+            <div class="verify-title" :class="{ 'verified': data.verified }">
+              {{ data.verified ? '验证成功' : '请向右滑动完成验证' }}
+            </div>
+            <el-slider
+              v-model="data.sliderValue"
+              :min="0"
+              :max="100"
+              :show-tooltip="false"
+              :disabled="data.verified"
+              @change="handleSliderChange"
+              class="verify-slider"
+            >
+              <template #button>
+                <div class="custom-slider-button" :class="{ 'verified': data.verified }">
+                  <i :class="data.verified ? 'el-icon-check' : 'el-icon-right'"></i>
+                </div>
+              </template>
+            </el-slider>
+          </div>
+          <el-form-item>
+            <el-button size="large" type="primary" class="login-btn" @click="login" :class="{ 'button-loading': data.loading }">
+              <span v-if="!data.loading">登 录</span>
+              <span v-else class="loading-spinner"></span>
+            </el-button>
+          </el-form-item>
+          <div class="login-actions fade-in">
+            <el-link type="primary" @click="showForgetPassword" class="custom-link">忘记密码？</el-link>
+            <el-link type="primary" @click="goToRegister" class="custom-link">注册账号</el-link>
+          </div>
+        </el-form>
+        
+        <!-- 下滑提示 -->
+        <div class="scroll-hint fade-in" @click="scrollToExtendedContent">
+          <div class="hint-text">下滑探索更多精彩内容</div>
+          <div class="scroll-indicator">
+            <div class="scroll-dot"></div>
+            <div class="scroll-dot"></div>
+            <div class="scroll-dot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 下滑扩展内容区域 -->
+    <div class="extended-content">
+      <!-- 系统特色介绍 -->
+      <div class="section features">
+        <h3 class="section-title">我们的特色</h3>
+        <div class="feature-cards">
+          <div class="feature-card">
+            <div class="feature-icon ticket-icon"></div>
+            <h4>便捷购票</h4>
+            <p>随时随地，轻松选座，一键购票</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon discount-icon"></div>
+            <h4>优惠活动</h4>
+            <p>会员专享折扣，节假日特惠</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon preview-icon"></div>
+            <h4>新片速递</h4>
+            <p>第一时间获取最新影片资讯</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 用户评价 -->
+      <div class="section testimonials">
+        <h3 class="section-title">用户评价</h3>
+        <div class="testimonial-cards">
+          <div class="testimonial-card" v-for="(testimonial, index) in testimonials" :key="index">
+            <div class="user-avatar">
+              <img :src="testimonial.avatar" :alt="testimonial.name">
+            </div>
+            <div class="user-name">{{ testimonial.name }}</div>
+            <div class="testimonial-content">"{{ testimonial.content }}"</div>
+            <div class="testimonial-rating">
+              <i class="star-icon" v-for="n in 5" :key="n" :class="{ 'filled': n <= testimonial.rating }"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 页脚 -->
+      <footer class="page-footer">
+        <div class="footer-content">
+          <div class="footer-main">
+            <div class="footer-section">
+              <div class="footer-logo">
+                <div class="logo-cinema"></div>
+                <span class="logo-text">电影购票系统</span>
+              </div>
+              <div class="footer-desc">提供最新、最全的电影资讯和在线购票服务</div>
+              <div class="footer-social-icons">
+                <div class="social-icon weixin"></div>
+                <div class="social-icon weibo"></div>
+                <div class="social-icon douyin"></div>
+              </div>
+            </div>
+            
+            <div class="footer-section">
+              <h4 class="footer-heading">电影资讯</h4>
+              <ul class="footer-links">
+                <li><a href="#" @click.prevent="navigateTo('/front/film?category=playing')">正在热映</a></li>
+                <li><a href="#" @click.prevent="navigateTo('/front/film?category=upcoming')">即将上映</a></li>
+                <li><a href="#" @click.prevent="navigateTo('/front/charts')">电影排行榜</a></li>
+                <li><a href="#" @click.prevent="navigateTo('/front/home')">电影推荐</a></li>
+              </ul>
+            </div>
+            
+            <div class="footer-section">
+              <h4 class="footer-heading">帮助中心</h4>
+              <ul class="footer-links">
+                <li><a href="#">购票指南</a></li>
+                <li><a href="#">支付方式</a></li>
+                <li><a href="#">退票说明</a></li>
+                <li><a href="#">常见问题</a></li>
+              </ul>
+            </div>
+            
+            <div class="footer-section">
+              <h4 class="footer-heading">关于我们</h4>
+              <ul class="footer-links">
+                <li><a href="#">公司介绍</a></li>
+                <li><a href="#">联系我们</a></li>
+                <li><a href="#">加入我们</a></li>
+                <li><a href="#">合作伙伴</a></li>
+              </ul>
+            </div>
+          </div>
+          
+          <div class="footer-bottom">
+            <div class="footer-copyright">
+              © 2025 电影购票系统 版权所有 | 隐私政策 | 用户协议
+            </div>
+            <div class="footer-cert">
+              <span>证件信息: 沪ICP备xxxxxxxx号</span>
+              <span>河南牧业经济学院许可证: 豫网文[xxxx]xxxx-xxx号</span>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
 
     <!-- 找回密码弹窗 -->
@@ -96,8 +248,8 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from "vue";
-import { User, Lock, Phone } from "@element-plus/icons-vue";
+import { reactive, ref, onMounted, onBeforeMount } from "vue";
+import { User, Lock, Phone, ArrowDown } from "@element-plus/icons-vue";
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
 import router from "@/router/index.js";
@@ -106,12 +258,58 @@ import SnowEffect from "@/components/SnowEffect.vue";
 const formRef = ref()
 const forgetFormRef = ref()
 const showContent = ref(false);
+const isScrolled = ref(false);
+
+// 用户评价示例数据
+const testimonials = ref([
+  {
+    name: "李明",
+    avatar: "https://randomuser.me/api/portraits/men/32.jpg",
+    content: "这个电影购票系统太棒了，操作简单，选座方便，还有电影评分和推荐功能！",
+    rating: 5
+  },
+  {
+    name: "王芳",
+    avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+    content: "界面设计很美观，使用体验很流畅，支持多种支付方式，非常方便。",
+    rating: 4
+  },
+  {
+    name: "张伟",
+    avatar: "https://randomuser.me/api/portraits/men/22.jpg",
+    content: "影院信息非常全面，能看到很多场次，优惠活动也很多，强烈推荐！",
+    rating: 5
+  }
+]);
+
+// 监听滚动事件，实现动画效果
+const setupScrollAnimation = () => {
+  const sections = document.querySelectorAll('.section');
+  
+  const fadeInOnScroll = () => {
+    sections.forEach(section => {
+      const sectionTop = section.getBoundingClientRect().top;
+      const windowHeight = window.innerHeight;
+      
+      if (sectionTop < windowHeight * 0.85) {
+        section.classList.add('visible');
+      }
+    });
+  };
+  
+  window.addEventListener('scroll', fadeInOnScroll);
+  // 初始检查
+  setTimeout(fadeInOnScroll, 500);
+};
 
 onMounted(() => {
   // 添加延迟展示内容的效果
   setTimeout(() => {
     showContent.value = true;
   }, 300);
+  
+  // 设置滚动动画
+  setupScrollAnimation();
   
   // 在登录页清除可能存在的不合法token，解决刷新问题
   // 检查URL中是否有错误参数
@@ -152,6 +350,8 @@ const data = reactive({
   },
   forgetVisible: false,
   loading: false,
+  sliderValue: 0,
+  verified: false,
   rules: {
     username: [
       { required: true, message: '请输入账号', trigger: 'blur' }
@@ -190,16 +390,18 @@ const forgetRules = {
 }
 
 const login = () => {
+  if (!data.verified) {
+    ElMessage.warning('请先完成滑块验证');
+    return;
+  }
+  
   formRef.value.validate(valid => {
-    if (valid) { // 表示表单校验通过
-      data.loading = true; // 开始加载状态
+    if (valid) {
+      data.loading = true;
       request.post('/login', data.form).then(res => {
         if (res.code === '200') {
           ElMessage.success('登录成功')
-          // 存储用户信息到浏览器的缓存
           localStorage.setItem('xm-user', JSON.stringify(res.data))
-          
-          // 设置登录成功标记，用于触发系统公告显示
           sessionStorage.setItem('just_logged_in', 'true')
           
           setTimeout(() => {
@@ -215,10 +417,12 @@ const login = () => {
           }, 800)
         } else {
           ElMessage.error(res.msg)
-          data.loading = false; // 结束加载状态
+          data.loading = false;
+          resetSlider();
         }
       }).catch(() => {
-        data.loading = false; // 错误时也结束加载状态
+        data.loading = false;
+        resetSlider();
       })
     }
   })
@@ -281,18 +485,150 @@ const goToRegister = () => {
     router.push('/register');
   }, 500);
 }
+
+// 添加返回首页的方法
+const goToHome = () => {
+  router.push('/front/home');
+}
+
+// 平滑滚动到指定位置
+const scrollToSection = (sectionId) => {
+  const section = document.getElementById(sectionId);
+  if (section) {
+    section.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+// 跳转到其他页面
+const navigateTo = (path) => {
+  router.push(path);
+};
+
+// 平滑滚动到扩展内容区域
+const scrollToExtendedContent = () => {
+  const extendedContent = document.querySelector('.extended-content');
+  if (extendedContent) {
+    extendedContent.scrollIntoView({ behavior: 'smooth' });
+  }
+};
+
+// 监听滚动事件，更新导航栏样式
+window.addEventListener('scroll', () => {
+  isScrolled.value = window.scrollY > 0;
+});
+
+// 添加滑块验证相关方法
+const handleSliderChange = (value) => {
+  if (value === 100) {
+    data.verified = true;
+    ElMessage.success('验证成功');
+  }
+}
+
+const resetSlider = () => {
+  data.sliderValue = 0;
+  data.verified = false;
+}
 </script>
 
 <style scoped>
 .login-wrapper {
   min-height: 100vh;
+  background-image: url("@/assets/imgs/bg.jpg");
+  background-size: cover;
+  background-attachment: fixed;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* 顶部导航栏 */
+.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 40px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(40, 44, 52, 0.75);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.4s ease;
+}
+
+.top-nav.scrolled {
+  background: rgba(40, 44, 68, 0.95);
+  padding: 12px 40px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-cinema {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background: url('/favicon.ico') no-repeat center;
+  background-size: contain;
+}
+
+.logo-text {
+  background: linear-gradient(to right, #fff, #ffc371);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 20px;
+  letter-spacing: 0.5px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 30px;
+}
+
+.nav-item {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.nav-item:hover, .nav-item.active {
+  color: #fff;
+}
+
+.nav-item::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(to right, #ff5f6d, #ffc371);
+  border-radius: 1px;
+  transition: width 0.3s ease;
+}
+
+.nav-item:hover::after {
+  width: 100%;
+}
+
+/* 内容包装器 */
+.content-wrapper {
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-image: url("@/assets/imgs/bg.jpg");
-  background-size: cover;
-  position: relative;
-  overflow: hidden;
+  padding: 100px 20px;
 }
 
 /* 自定义动画效果 */
@@ -340,80 +676,18 @@ const goToRegister = () => {
   opacity: 0;
 }
 
-/* 浮动圆圈装饰 */
-.floating-circles {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.circle {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0.6;
-  filter: blur(20px);
-}
-
-.circle-1 {
-  width: 150px;
-  height: 150px;
-  background: rgba(64, 158, 255, 0.4);
-  bottom: 10%;
-  left: 10%;
-  animation: float1 15s ease-in-out infinite;
-}
-
-.circle-2 {
-  width: 100px;
-  height: 100px;
-  background: rgba(255, 102, 0, 0.3);
-  top: 20%;
-  right: 20%;
-  animation: float2 18s ease-in-out infinite;
-}
-
-.circle-3 {
-  width: 200px;
-  height: 200px;
-  background: rgba(103, 194, 58, 0.2);
-  bottom: 30%;
-  right: 10%;
-  animation: float3 20s ease-in-out infinite;
-}
-
-@keyframes float1 {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(-20px, 30px) rotate(5deg); }
-  50% { transform: translate(10px, -20px) rotate(-5deg); }
-  75% { transform: translate(30px, 10px) rotate(3deg); }
-}
-
-@keyframes float2 {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(30px, 10px) rotate(-8deg); }
-  50% { transform: translate(-20px, -20px) rotate(8deg); }
-  75% { transform: translate(-10px, 30px) rotate(-4deg); }
-}
-
-@keyframes float3 {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(-15px, -25px) rotate(3deg); }
-  50% { transform: translate(25px, 10px) rotate(-3deg); }
-  75% { transform: translate(10px, -15px) rotate(5deg); }
-}
-
 .login-container {
-  width: 420px;
-  background: rgba(255, 255, 255, 0.7);
+  width: 480px;
+  background: rgba(255, 255, 255, 0.8);
   border-radius: 20px;
-  padding: 40px;
+  padding: 40px 50px;
   box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.8);
   transform: translateY(30px);
   opacity: 0;
   transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  margin-bottom: 60px;
 }
 
 .login-container.appear {
@@ -441,6 +715,12 @@ const goToRegister = () => {
   letter-spacing: 1px;
 }
 
+.login-subtitle {
+  color: #666;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
 .underline {
   width: 50px;
   height: 3px;
@@ -456,37 +736,23 @@ const goToRegister = () => {
 
 .login-btn {
   width: 100%;
-  height: 45px;
+  height: 48px;
   font-size: 16px;
   margin-top: 10px;
-  border-radius: 25px;
-  background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
   border: none;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  font-weight: 500;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
 
-.login-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.7s ease;
-}
-
-.login-btn:hover::before {
-  left: 100%;
-}
-
 .login-btn:hover {
   transform: translateY(-3px);
-  box-shadow: 0 7px 14px rgba(0, 123, 255, 0.3);
-  background: linear-gradient(135deg, #67c23a 0%, #409eff 100%);
+  box-shadow: 0 7px 14px rgba(255, 95, 109, 0.3);
+  background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
 }
 
 .login-btn:active {
@@ -546,118 +812,508 @@ const goToRegister = () => {
   left: 0;
 }
 
-.code-input {
+/* 下滑提示样式 */
+.scroll-hint {
+  text-align: center;
+  margin-top: 30px;
+  color: #666;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.3s ease;
+  padding: 10px;
+}
+
+.scroll-hint:hover {
+  transform: translateY(5px);
+}
+
+.hint-text {
+  font-size: 15px;
+  margin-bottom: 15px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  background: linear-gradient(to right, #ff5f6d, #ffc371);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.scroll-indicator {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: pulseDown 2s infinite;
 }
 
-.code-input .el-input {
-  flex: 1;
+.scroll-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: linear-gradient(to right, #ff5f6d, #ffc371);
 }
 
-.forget-dialog {
-  :deep(.el-dialog__body) {
-    padding: 20px 30px;
+@keyframes pulseDown {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.3;
   }
-  
-  :deep(.el-dialog__header) {
-    text-align: center;
-    padding: 20px 0 0;
-    
-    .el-dialog__title {
-      font-size: 20px;
-      font-weight: bold;
-      color: #333;
-    }
-  }
-  
-  :deep(.el-dialog__headerbtn) {
-    top: 15px;
-    right: 15px;
+  50% {
+    transform: translateY(10px);
+    opacity: 1;
   }
 }
 
-.custom-dialog :deep(.el-dialog) {
-  border-radius: 16px;
-  overflow: hidden;
-  transform: translateY(20px);
-  transition: transform 0.3s ease-out;
+/* 扩展内容区域 */
+.extended-content {
+  padding: 40px 0;
+  background: #fff;
 }
 
-.custom-dialog :deep(.el-dialog--center) {
+.section {
+  max-width: 1200px;
+  margin: 0 auto 80px;
+  padding: 0 20px;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s ease-out;
+}
+
+.section.visible {
+  opacity: 1;
   transform: translateY(0);
 }
 
-.dialog-footer {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  padding-top: 10px;
+.section-title {
+  text-align: center;
+  font-size: 32px;
+  margin-bottom: 40px;
+  color: #333;
+  position: relative;
 }
 
-.cancel-btn, .confirm-btn {
-  min-width: 100px;
-  border-radius: 20px;
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(to right, #409eff, #67c23a);
+  border-radius: 3px;
+}
+
+/* 特色卡片 */
+.feature-cards {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.feature-card {
+  width: 280px;
+  padding: 30px;
+  border-radius: 15px;
+  background: #f9f9f9;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  text-align: center;
   transition: all 0.3s ease;
 }
 
-.cancel-btn:hover {
-  transform: translateY(-2px);
+.feature-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
 }
 
-.confirm-btn {
-  background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
-  border: none;
-}
-
-.confirm-btn:hover {
-  background: linear-gradient(135deg, #67c23a 0%, #409eff 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
-}
-
-.custom-input {
-  :deep(.el-input__wrapper) {
-    box-shadow: 0 0 0 1px rgba(220, 223, 230, 0.5);
-    border-radius: 12px;
-    padding: 2px 15px;
-    transition: all 0.3s;
-  }
-
-  :deep(.el-input__wrapper:hover) {
-    box-shadow: 0 0 0 1px #409eff;
-  }
-
-  :deep(.el-input__wrapper.is-focus) {
-    box-shadow: 0 0 8px rgba(64, 158, 255, 0.4);
-  }
-}
-
-.custom-select {
-  width: 100%;
-  
-  :deep(.el-input__wrapper) {
-    box-shadow: 0 0 0 1px rgba(220, 223, 230, 0.5);
-    border-radius: 12px;
-    padding: 2px 15px;
-    transition: all 0.3s;
-  }
-
-  :deep(.el-input__wrapper:hover) {
-    box-shadow: 0 0 0 1px #409eff;
-  }
-
-  :deep(.el-input__wrapper.is-focus) {
-    box-shadow: 0 0 8px rgba(64, 158, 255, 0.4);
-  }
-}
-
-:deep(.el-input__prefix-inner) {
+.feature-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
+  justify-content: center;
+  background: #fff;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-:deep(.el-select) {
+.ticket-icon {
+  background: #fff url('data:image/svg+xml;utf8,<svg t="1608888888888" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5555" width="40" height="40"><path d="M128 896V277.248l185.6-185.6h528.128L1024 273.92V896h-896z m576-768H337.376L208 247.296V832h752V299.52L704 128z" fill="%23409EFF" p-id="5556"></path><path d="M640 576h128v64h-128zM640 448h128v64h-128zM640 320h128v64h-128z" fill="%23409EFF" p-id="5557"></path><path d="M256 384h320v320H256z" fill="%23409EFF" p-id="5558"></path></svg>') no-repeat center;
+  background-size: 40px;
+}
+
+.discount-icon {
+  background: #fff url('data:image/svg+xml;utf8,<svg t="1608888888888" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6666" width="40" height="40"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z m0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z" fill="%23FF5722" p-id="6667"></path><path d="M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z" fill="%23FF5722" p-id="6668"></path></svg>') no-repeat center;
+  background-size: 40px;
+}
+
+.preview-icon {
+  background: #fff url('data:image/svg+xml;utf8,<svg t="1608888888888" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="7777" width="40" height="40"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z m0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z" fill="%2367C23A" p-id="7778"></path><path d="M719.4 499.1l-296.1-215c-4.8-3.5-11.4-0.3-11.4 5.6v430c0 5.9 6.6 9.1 11.4 5.6l296.1-215c4.1-3 4.1-9.2 0-12.2z" fill="%2367C23A" p-id="7779"></path></svg>') no-repeat center;
+  background-size: 40px;
+}
+
+.feature-card h4 {
+  font-size: 20px;
+  margin: 0 0 15px;
+  color: #333;
+}
+
+.feature-card p {
+  color: #666;
+  line-height: 1.6;
+}
+
+/* 用户评价卡片 */
+.testimonial-cards {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.testimonial-card {
+  width: 300px;
+  padding: 30px;
+  border-radius: 15px;
+  background: #f9f9f9;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 15px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar img {
   width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-name {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.testimonial-content {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  font-style: italic;
+}
+
+.testimonial-rating {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.star-icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background: url('data:image/svg+xml;utf8,<svg t="1608888888888" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="8888" width="20" height="20"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3-12.3 12.7-12.1 32.9 0.6 45.3l183.7 179.1-43.4 252.9c-1.2 6.9-0.1 14.1 3.2 20.3 8.2 15.6 27.6 21.7 43.2 13.4L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z" p-id="8889" fill="%23CCCCCC"></path></svg>') no-repeat center;
+  background-size: contain;
+}
+
+.star-icon.filled {
+  background: url('data:image/svg+xml;utf8,<svg t="1608888888888" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="9999" width="20" height="20"><path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3-12.3 12.7-12.1 32.9 0.6 45.3l183.7 179.1-43.4 252.9c-1.2 6.9-0.1 14.1 3.2 20.3 8.2 15.6 27.6 21.7 43.2 13.4L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z" p-id="9999" fill="%23FFBA5A"></path></svg>') no-repeat center;
+  background-size: contain;
+}
+
+/* 页脚 */
+.page-footer {
+  background: linear-gradient(to right, #1c2331, #263238);
+  color: #fff;
+  padding: 0;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-main {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 60px 20px 40px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-section {
+  flex: 1;
+  min-width: 200px;
+  margin-bottom: 30px;
+  padding: 0 15px;
+}
+
+.footer-section:first-child {
+  flex: 1.5;
+}
+
+.footer-logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 15px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-logo::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background: url('/favicon.ico') no-repeat center;
+  background-size: contain;
+}
+
+.footer-logo::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -8px;
+  width: 50px;
+  height: 3px;
+  background: linear-gradient(to right, #ff5f6d, #ffc371);
+  border-radius: 1.5px;
+}
+
+.footer-desc {
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin-bottom: 20px;
+  max-width: 300px;
+}
+
+.footer-social-icons {
+  display: flex;
+  gap: 15px;
+}
+
+.social-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.social-icon:hover {
+  transform: translateY(-3px);
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.weixin {
+  background: rgba(255, 255, 255, 0.1) url('data:image/svg+xml;utf8,<svg t="1608888888888" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2222" width="22" height="22"><path d="M690.2 364.8c4.6 0 9.2 0.2 13.8 0.4-24.4-132.8-158.8-231.4-309.6-231.4-169 0-306.6 115.2-306.6 257.4 0 83.2 45.4 151.6 121.2 204.8l-30.2 91 106-53.2c38 7.6 68.4 15.4 106.4 15.4 9.4 0 18.8-0.2 28-1-5.4-20.2-9.2-41.2-9.2-63.4 0.2-128.8 111-233 280.2-233z m-177-89c22.8 0 38 15 38 37.8 0 22.8-15 38-38 38-22.8 0-45.4-15.2-45.4-38s22.6-37.8 45.4-37.8z m-233.6 75.8c-22.8 0-45.6-15.2-45.6-38s22.8-37.8 45.6-37.8c22.8 0 38 15 38 37.8-0.2 22.8-15.2 38-38 38z" fill="%23FFFFFF" p-id="2223"></path><path d="M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z" fill="%23FF5722" p-id="6668"></path></svg>') no-repeat center;
+  background-size: 22px;
+}
+
+.weibo {
+  background: rgba(255, 255, 255, 0.1) url('data:image/svg+xml;utf8,<svg t="1608888888888" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4444" width="22" height="22"><path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z m-57.9 601.5c-108.5 0-196.7-84.7-196.7-189 0-104.5 88.2-189 196.7-189 115 0 189.9 89.3 189.9 189 0.1 104.3-86.4 189-189.9 189z m194.4-277.2c-23.3-24.8-57-34.2-88.5-25.7-6.8 1.8-11.2 8.2-9.9 15.2 1.2 7 7.9 11.4 14.9 10.3 21.6-5.7 45.2 1.6 61.2 18.7 16 17.2 20.4 40.9 13.4 61.6-2.6 7.6 1.3 15.8 8.9 18 7.6 2.2 15.7-2.2 18-9.7 10.4-31.7 3.9-66.7-28-88.4z m-5.9-138.3c-47.4-49.4-117.7-68.1-182.6-52.7-13.9 3.3-22.2 16.5-18.9 30 3.3 13.5 17.2 21.8 30.8 18.5 65.3-15.5 136 13.1 184 61.5 48.1 48.4 61.5 114.4 40.6 172.3-5.3 15 4.2 30.8 20.4 35.9 16.3 5.1 33.4-3.3 38.7-18.3 28.4-79.6 10.5-170.9-62.4-246.2h-0.2z" fill="%23FFFFFF" p-id="4445"></path><path d="M470.7 491.5c-57.8 5.3-98.8 53.9-90.9 108.3 7.9 54.4 60.6 94.1 118.3 88.8 57.7-5.3 99.8-53.7 91.9z m-14.2 161.7c-31.5 3.7-65.2-15.4-77.1-45.5-11.9-30.2 1.5-61.1 33-64.9 31.5-3.7 65.9 15.9 77.8 46 11.9 30.2-1.5 61-33.7 64.4z m246.4-301.1c-28.7 0.7-51.8 24.1-51.1 52 0.7 27.9 23.9 50.3 52.6 49.6 28.8-0.7 51.8-24.1 51.1-52-0.7-27.9-24-50.3-52.6-49.6z" fill="%23FFFFFF" p-id="4446"></path></svg>') no-repeat center;
+  background-size: 22px;
+}
+
+.douyin {
+  background: rgba(255, 255, 255, 0.1) url('data:image/svg+xml;utf8,<svg t="1647507566001" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="9999" width="22" height="22"><path d="M937.1 423.2c-82 0-150.1-66-150.1-148V270h-138v602c0 36.5-33.5 66-70 66-36.5 0-66.7-29.5-66.7-66 0-36.5 30.2-66 66.7-66 9.7 0 13.1 0 26.1 3.3V671c-9.7-3.3-13.1-3.3-26.1-3.3-95.1 0-171.6 76.4-171.6 171.6S384.9 1010.9 480 1010.9s174.9-76.4 174.9-171.6V554.8c26.4 16.4 79.1 33.2 151.9 33.2V423.2h-49.9c51.5-26.4 89.9-94.8 89.9-148V270h-59.8v5.2c0 82-56.5 148-138.5 148H118v164.8h49.9c82 0 150.1-21.3 150.1-21.3 0 95.1 36.9 171.6 131.9 171.6 0 0-13.1-36.5-13.1-72.9s13.1-69.7 36.5-89.6V137.4h263.4c0-52.7 36.2-124 89.9-124V137.4h263.4v285.8h-113z" fill="%23FFFFFF" p-id="10000"></path></svg>') no-repeat center;
+  background-size: 22px;
+}
+
+.footer-heading {
+  font-size: 18px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  color: #fff;
+  position: relative;
+  display: inline-block;
+}
+
+.footer-heading::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -8px;
+  width: 30px;
+  height: 2px;
+  background: linear-gradient(to right, #409eff, #67c23a);
+  border-radius: 1px;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 12px;
+}
+
+.footer-links a {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  position: relative;
+  display: inline-block;
+}
+
+.footer-links a::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background-color: #fff;
+  transition: width 0.3s ease;
+}
+
+.footer-links a:hover {
+  color: #fff;
+  transform: translateX(5px);
+}
+
+.footer-links a:hover::before {
+  width: 100%;
+}
+
+.footer-bottom {
+  padding: 20px;
+  text-align: center;
+}
+
+.footer-copyright {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.footer-cert {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 12px;
+}
+
+/* 响应式样式 */
+@media (max-width: 768px) {
+  .footer-main {
+    flex-direction: column;
+    padding: 40px 20px 20px;
+  }
+  
+  .footer-section {
+    margin-bottom: 30px;
+    padding: 0;
+  }
+  
+  .footer-bottom {
+    padding: 15px;
+  }
+  
+  .footer-cert {
+    flex-direction: column;
+    gap: 5px;
+  }
+}
+
+/* 添加滑块验证样式 */
+.slider-verify {
+  margin-bottom: 25px;
+  background: #f5f7fa;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.verify-title {
+  font-size: 15px;
+  color: #606266;
+  margin-bottom: 15px;
+  text-align: center;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.verify-title.verified {
+  color: #67c23a;
+  font-weight: 500;
+}
+
+.verify-slider :deep(.el-slider__runway) {
+  height: 44px;
+  margin: 0;
+  background-color: #e9ecef;
+  border-radius: 22px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.verify-slider :deep(.el-slider__bar) {
+  height: 44px;
+  background: linear-gradient(to right, #ff5f6d, #ffc371);
+  border-radius: 22px;
+  transition: all 0.3s ease;
+}
+
+.custom-slider-button {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  cursor: grab;
+  font-size: 18px;
+}
+
+.custom-slider-button:active {
+  cursor: grabbing;
+  transform: scale(0.95);
+}
+
+.custom-slider-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.verify-slider :deep(.el-slider__button-wrapper) {
+  top: -2px;
+  width: 44px;
+  height: 44px;
+  cursor: grab;
+}
+
+.verify-slider :deep(.el-slider__button-wrapper:active) {
+  cursor: grabbing;
 }
 </style>

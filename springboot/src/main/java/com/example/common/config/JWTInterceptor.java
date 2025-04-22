@@ -61,18 +61,28 @@ public class JWTInterceptor implements HandlerInterceptor {
             }
         }
         
-        // 排除不需要token验证的接口
-        if (requestURI.contains("/login") || 
-            requestURI.contains("/register") || 
-            requestURI.contains("/user/resetPassword") ||
-            requestURI.contains("/user/checkUsername") ||
-            requestURI.contains("/user/checkPhone") || 
-            requestURI.contains("/map") ||
-            requestURI.contains("/email/sendVerificationCode") ||
-            requestURI.contains("/email/verifyCode")
-        ) {
-            logger.debug("接口在白名单中，跳过token验证: {}", requestURI);
-            return true;
+        // 定义白名单路径
+        String[] whiteList = {
+            "/login",
+            "/register",
+            "/user/resetPassword",
+            "/user/checkUsername",
+            "/user/checkPhone",
+            "/user/sendCode",
+            "/map",
+            "/email/sendVerificationCode",
+            "/email/verifyCode",
+            "/alipay/notify",
+            "/alipay/pay",
+            "/files"
+        };
+        
+        // 检查是否在白名单中
+        for (String path : whiteList) {
+            if (requestURI.equals(path) || (path.endsWith("/*") && requestURI.startsWith(path.substring(0, path.length() - 1)))) {
+                logger.debug("接口在白名单中，跳过token验证: {}", requestURI);
+                return true;
+            }
         }
 
         // 1. 从http请求标头里面拿到token

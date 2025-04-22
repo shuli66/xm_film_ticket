@@ -100,9 +100,16 @@
           <el-row :gutter="20">
             <el-col :span="6" v-for="item in data.recommended" :key="item.id" class="movie-card">
               <div class="movie-poster" @click="navTo('/front/filmDetail?id=' + item.id)">
-                <img :src="item.img" :alt="item.title" class="poster-image">
-                <div class="movie-overlay">
-                  <el-button type="primary" class="buy-ticket-btn">购票</el-button>
+                <div class="poster-container">
+                  <img :src="item.img" :alt="item.title" class="poster-image">
+                  <div class="movie-overlay">
+                    <el-button type="primary" class="buy-ticket-btn">购票</el-button>
+                  </div>
+                </div>
+                <div class="movie-info">
+                  <div class="movie-title">{{ item.title }}</div>
+                  <div class="movie-score" v-if="item.score && parseFloat(item.score) > 0">评分: {{ (item.score * 1).toFixed(1) }}分</div>
+                  <div class="movie-score movie-no-score" v-else>暂无评分</div>
                 </div>
               </div>
             </el-col>
@@ -121,9 +128,16 @@
           <el-row :gutter="20">
             <el-col :span="6" v-for="item in data.playingData" :key="item.id" class="movie-card">
               <div class="movie-poster" @click="navTo('/front/filmDetail?id=' + item.id)">
-                <img :src="item.img" :alt="item.title" class="poster-image">
-                <div class="movie-overlay">
-                  <el-button type="primary" class="buy-ticket-btn">购票</el-button>
+                <div class="poster-container">
+                  <img :src="item.img" :alt="item.title" class="poster-image">
+                  <div class="movie-overlay">
+                    <el-button type="primary" class="buy-ticket-btn">购票</el-button>
+                  </div>
+                </div>
+                <div class="movie-info">
+                  <div class="movie-title">{{ item.title }}</div>
+                  <div class="movie-score" v-if="item.score && parseFloat(item.score) > 0">评分: {{ (item.score * 1).toFixed(1) }}分</div>
+                  <div class="movie-score movie-no-score" v-else>暂无评分</div>
                 </div>
               </div>
             </el-col>
@@ -142,10 +156,14 @@
           <el-row :gutter="20">
             <el-col :span="6" v-for="item in data.noPlayData" :key="item.id" class="movie-card">
               <div class="movie-poster" @click="navTo('/front/filmDetail?id=' + item.id)">
-                <img :src="item.img" :alt="item.title" class="poster-image">
+                <div class="poster-container">
+                  <img :src="item.img" :alt="item.title" class="poster-image">
+                </div>
                 <div class="movie-info">
                   <div class="movie-title">{{ item.title }}</div>
                   <div class="release-date">{{ item.start }} 上映</div>
+                  <div class="movie-score" v-if="item.score && parseFloat(item.score) > 0">评分: {{ (item.score * 1).toFixed(1) }}分</div>
+                  <div class="movie-score movie-no-score" v-else>暂无评分</div>
                 </div>
               </div>
             </el-col>
@@ -252,30 +270,33 @@ const formatTime = (time) => {
 
 // 修复loadNotice函数，确保弹窗正确显示
 const loadNotice = () => {
-  // 1. 去除所有console调试代码，使逻辑更清晰
-  
-  // 2. 清除localStorage中的不再显示标记（强制显示公告）
-  localStorage.removeItem('xm-notice-noshow');
-  data.noticeNoShow = false;
-  
-  // 3. 清除已读记录，强制显示新公告
-  localStorage.removeItem('xm-read-notices');
-  
-  // 4. 检查用户是否登录
+  // 1. 检查用户是否登录
   const user = JSON.parse(localStorage.getItem('xm-user') || '{}');
   const isLoggedIn = !!user.id;
-
-  // 5. 强制设置登录标记为true
-  const justLoggedIn = true;
-  sessionStorage.setItem('just_logged_in', 'true');
-
-  // 6. 修改请求参数，获取所有公告
+  
+  if (!isLoggedIn) {
+    // 如果用户未登录，不显示公告
+    return;
+  }
+  
+  // 2. 检查用户是否设置了不再提示
+  const noShowSetting = localStorage.getItem('xm-notice-noshow');
+  if (noShowSetting === 'true') {
+    data.noticeNoShow = true;
+    // 用户设置了不再提示，不显示公告
+    return;
+  }
+  
+  // 3. 获取已读公告列表
+  const readNotices = JSON.parse(localStorage.getItem('xm-read-notices') || '[]');
+  
+  // 4. 获取公告数据
   request.get('/notice/selectAll').then(res => {
     if (res.code === '200' && res.data && res.data.length > 0) {
       // 处理数据
       const notices = res.data.map(notice => ({
         ...notice,
-        important: true // 强制所有公告都是重要公告
+        important: notice.important || false // 保持原始重要性标志
       }));
       
       // 按时间排序，显示最新的
@@ -283,23 +304,43 @@ const loadNotice = () => {
         new Date(b.time) - new Date(a.time)
       );
       
-      // 设置当前公告
-      data.currentNotice = sortedNotices[0];
+      // 过滤出未读的公告
+      const unreadNotices = sortedNotices.filter(notice => !readNotices.includes(notice.id));
       
-      // 7. 强制显示公告
-      setTimeout(() => {
-        data.noticeVisible = true;
-      }, 300);
+      if (unreadNotices.length > 0) {
+        // 设置当前公告为最新的未读公告
+        data.currentNotice = unreadNotices[0];
+        
+        // 显示公告弹窗
+        setTimeout(() => {
+          data.noticeVisible = true;
+        }, 300);
+      }
     }
   }).catch(err => {
-    // console.error("加载公告失败", err);
+    console.error("加载公告失败", err);
   });
 }
 
 // 修复watchNoticeNoShow函数，防止阻止公告显示
 const watchNoticeNoShow = () => {
-  // 不保存到localStorage，只在当前会话有效
-  console.log("用户选择了不再提示，设置标记");
+  // 将选择保存到localStorage，确保持久化存储用户选择
+  if (data.noticeNoShow) {
+    // 用户选择不再提示
+    localStorage.setItem('xm-notice-noshow', 'true');
+    
+    // 如果有当前公告，将其ID添加到已读公告列表中
+    if (data.currentNotice) {
+      const readNotices = JSON.parse(localStorage.getItem('xm-read-notices') || '[]');
+      if (!readNotices.includes(data.currentNotice.id)) {
+        readNotices.push(data.currentNotice.id);
+        localStorage.setItem('xm-read-notices', JSON.stringify(readNotices));
+      }
+    }
+  } else {
+    // 用户取消了不再提示，移除该标记
+    localStorage.removeItem('xm-notice-noshow');
+  }
 }
 
 // 加载今日票房总计
@@ -365,31 +406,7 @@ const loadRecommendations = () => {
   });
 }
 
-// 添加一个独立的弹窗初始化函数
-const initNoticePopup = () => {
-  // 延迟初始化弹窗
-  setTimeout(() => {
-    // 如果已经加载了公告数据
-    if (data.currentNotice) {
-      data.noticeVisible = true;
-    } else {
-      // 如果还没有加载公告，则调用加载函数
-      loadNotice();
-      // 再次延迟确保显示
-      setTimeout(() => {
-        data.noticeVisible = true;
-      }, 500);
-    }
-  }, 800);
-}
-
-// 修改初始加载数据的顺序，确保其他API完成后再加载公告
-// 初始加载数据
-loadTodayTotal();
-loadTotal();
-loadScore();
-loadRecommendations();  // 加载推荐电影数据
-
+// 修改初始化逻辑
 const navTo = (url) => {
   location.href = url
 }
@@ -415,27 +432,47 @@ const load = () => {
     }
   })
 }
-load()
 
-// 修复closeNotice方法，关闭弹窗后清除已读标记
+// 修复closeNotice方法，关闭弹窗后记录已读标记
 const closeNotice = () => {
   data.noticeVisible = false;
   
-  // 将此公告移出已读列表，以便下次能再次显示
+  // 如果用户选择了不再提示，则不需要再单独记录已读
+  if (data.noticeNoShow) {
+    return;
+  }
+  
+  // 将当前公告添加到已读列表
   if (data.currentNotice) {
     const readNotices = JSON.parse(localStorage.getItem('xm-read-notices') || '[]');
-    const filteredNotices = readNotices.filter(id => id !== data.currentNotice.id);
-    localStorage.setItem('xm-read-notices', JSON.stringify(filteredNotices));
+    if (!readNotices.includes(data.currentNotice.id)) {
+      readNotices.push(data.currentNotice.id);
+      localStorage.setItem('xm-read-notices', JSON.stringify(readNotices));
+    }
   }
 }
 
-// 修改onMounted钩子，确保在组件挂载后强制初始化公告弹窗
+// 修改onMounted钩子，确保在组件挂载后初始化公告弹窗
 onMounted(() => {
-  // 立即加载公告
-  loadNotice();
+  // 加载其他数据
+  load();
+  loadTodayTotal();
+  loadTotal();
+  loadScore();
   
-  // 延迟初始化弹窗，确保数据已加载
-  initNoticePopup();
+  // 检查用户是否登录
+  const user = JSON.parse(localStorage.getItem('xm-user') || '{}');
+  const isLoggedIn = !!user.id;
+  
+  if (isLoggedIn) {
+    // 加载推荐信息
+    loadRecommendations();
+    
+    // 加载公告
+    setTimeout(() => {
+      loadNotice();
+    }, 1000); // 延迟1秒加载公告，确保其他数据已加载完成
+  }
 });
 </script>
 
@@ -565,6 +602,9 @@ onMounted(() => {
 .movie-card {
   margin-bottom: 30px;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 380px; /* 固定卡片高度 */
 }
 
 .movie-poster {
@@ -575,6 +615,9 @@ onMounted(() => {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.08);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .movie-poster:hover {
@@ -582,9 +625,17 @@ onMounted(() => {
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
 }
 
-.poster-image {
+.poster-container {
+  position: relative;
   width: 100%;
   height: 280px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.poster-image {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   display: block;
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -599,10 +650,15 @@ onMounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
   padding: 25px;
   opacity: 0;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+}
+
+.movie-poster:hover .movie-overlay {
+  opacity: 1;
 }
 
 .buy-ticket-btn {
@@ -623,19 +679,43 @@ onMounted(() => {
 }
 
 .movie-info {
-  padding: 15px;
+  padding: 12px 15px;
   background: #fff;
+  text-align: center;
+  height: auto;
+  min-height: 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-top: 1px solid #f0f0f0;
 }
 
 .movie-title {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
 }
 
 .release-date {
   color: #ff6b00;
   font-size: 14px;
+  line-height: 1.4;
+}
+
+.movie-score {
+  color: #ffa940;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.movie-no-score {
+  color: #909399;
+  font-style: italic;
 }
 
 .rankings-box {
