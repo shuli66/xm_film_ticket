@@ -48,28 +48,9 @@
               <el-option value="USER" label="用户"></el-option>
             </el-select>
           </el-form-item>
-          <div class="slider-verify">
-            <div class="verify-title" :class="{ 'verified': data.verified }">
-              {{ data.verified ? '验证成功' : '请向右滑动完成验证' }}
-            </div>
-            <el-slider
-              v-model="data.sliderValue"
-              :min="0"
-              :max="100"
-              :show-tooltip="false"
-              :disabled="data.verified"
-              @change="handleSliderChange"
-              class="verify-slider"
-            >
-              <template #button>
-                <div class="custom-slider-button" :class="{ 'verified': data.verified }">
-                  <i :class="data.verified ? 'el-icon-check' : 'el-icon-right'"></i>
-                </div>
-              </template>
-            </el-slider>
-          </div>
+          
           <el-form-item>
-            <el-button size="large" type="primary" class="login-btn" @click="login" :class="{ 'button-loading': data.loading }">
+            <el-button size="large" type="primary" class="login-btn" @click="handleLogin" :class="{ 'button-loading': data.loading }">
               <span v-if="!data.loading">登 录</span>
               <span v-else class="loading-spinner"></span>
             </el-button>
@@ -244,11 +225,63 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 添加拼图滑块验证弹窗 -->
+    <el-dialog
+      v-model="data.showCaptcha"
+      title="请完成安全验证"
+      width="400px"
+      :close-on-click-modal="true"
+      :close-on-press-escape="true"
+      center
+    >
+      <div class="puzzle-captcha">
+        <div class="puzzle-image">
+          <div class="puzzle-bg" :style="{ backgroundColor: data.randomBackground }">
+            <div 
+              class="puzzle-piece" 
+              :style="{ 
+                left: data.puzzlePosition + 'px', 
+                backgroundColor: data.randomBackground,
+                top: '70px' 
+              }"
+            ></div>
+            
+            <div 
+              class="puzzle-target" 
+              :style="{ 
+                left: data.puzzleTarget + 'px',
+                top: '70px'
+              }"
+            ></div>
+          </div>
+        </div>
+        
+        <div class="puzzle-slider-container">
+          <div class="puzzle-slider-tip">拖动滑块完成拼图</div>
+          <div class="puzzle-slider-track"></div>
+          <div 
+            class="puzzle-slider-button"
+            :class="{ 'verified': data.verified }"
+            @mousedown="startDrag"
+            :style="{ left: data.puzzlePosition + 'px' }"
+          >
+            <i :class="data.verified ? 'el-icon-check' : 'el-icon-d-arrow-right'"></i>
+          </div>
+        </div>
+        
+        <div class="puzzle-action">
+          <el-button type="text" @click="refreshCaptcha" class="refresh-btn">
+            <i class="el-icon-refresh"></i> 换一张
+          </el-button>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, onBeforeMount } from "vue";
+import { reactive, ref, onMounted, onBeforeMount, onBeforeUnmount } from "vue";
 import { User, Lock, Phone, ArrowDown } from "@element-plus/icons-vue";
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
@@ -295,6 +328,9 @@ const setupScrollAnimation = () => {
         section.classList.add('visible');
       }
     });
+    
+    // 更新导航栏样式
+    isScrolled.value = window.scrollY > 20;
   };
   
   window.addEventListener('scroll', fadeInOnScroll);
@@ -333,6 +369,9 @@ onMounted(() => {
     }
   }
   
+  // 确保验证码弹窗初始状态为关闭
+  data.showCaptcha = false;
+  
   // 检查是否有来自注册页面的转场状态
   const fromRegister = sessionStorage.getItem('from_register');
   if (fromRegister) {
@@ -349,9 +388,8 @@ const data = reactive({
     confirmPassword: ''
   },
   forgetVisible: false,
+  showCaptcha: false,
   loading: false,
-  sliderValue: 0,
-  verified: false,
   rules: {
     username: [
       { required: true, message: '请输入账号', trigger: 'blur' }
@@ -362,7 +400,16 @@ const data = reactive({
     role: [
       { required: true, message: '请选择角色', trigger: 'blur' }
     ]
-  }
+  },
+  verified: false,
+  puzzlePosition: 0,
+  puzzleTarget: 180,
+  isDragging: false,
+  startX: 0,
+  startPos: 0,
+  randomBackground: '',
+  backgroundImages: ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'],
+  captchaLoading: false
 })
 
 const forgetRules = {
@@ -389,87 +436,163 @@ const forgetRules = {
   ]
 }
 
-const login = () => {
-  if (!data.verified) {
-    ElMessage.warning('请先完成滑块验证');
-    return;
-  }
-  
+// 处理登录按钮点击
+const handleLogin = () => {
   formRef.value.validate(valid => {
     if (valid) {
-      data.loading = true;
-      request.post('/login', data.form).then(res => {
-        if (res.code === '200') {
-          ElMessage.success('登录成功')
-          localStorage.setItem('xm-user', JSON.stringify(res.data))
-          sessionStorage.setItem('just_logged_in', 'true')
-          
-          setTimeout(() => {
-            if (res.data.role === 'USER') {
-              router.push('/front/home')
-            }
-            if (res.data.role === 'CINEMA') {
-              router.push('/manager/home')
-            }
-            if (res.data.role === 'ADMIN') {
-              router.push('/manager/adminHome')
-            }
-          }, 800)
-        } else {
-          ElMessage.error(res.msg)
-          data.loading = false;
-          resetSlider();
-        }
-      }).catch(() => {
-        data.loading = false;
-        resetSlider();
-      })
+      // 显示验证码弹窗
+      showCaptcha();
     }
-  })
+  });
 }
 
-const showForgetPassword = () => {
-  data.forgetVisible = true
-  data.forgetForm = {
-    phone: '',
-    newPassword: '',
-    confirmPassword: ''
+// 显示验证码弹窗
+const showCaptcha = () => {
+  data.showCaptcha = true;
+  data.verified = false;
+  refreshCaptcha();
+}
+
+// 刷新验证码
+const refreshCaptcha = () => {
+  data.captchaLoading = true;
+  data.verified = false;
+  setTimeout(() => {
+    data.captchaLoading = false;
+    data.puzzlePosition = 0;
+    data.puzzleTarget = 100 + Math.floor(Math.random() * 150);
+    data.randomBackground = data.backgroundImages[Math.floor(Math.random() * data.backgroundImages.length)];
+  }, 500);
+}
+
+// 开始拖动
+const startDrag = (e) => {
+  if (data.verified) return;
+  data.isDragging = true;
+  data.startX = e.clientX;
+  data.startPos = data.puzzlePosition;
+  document.addEventListener('mousemove', onDrag);
+  document.addEventListener('mouseup', stopDrag);
+  e.preventDefault(); // 防止选中文本
+}
+
+// 拖动中
+const onDrag = (e) => {
+  if (!data.isDragging) return;
+  
+  let deltaX = e.clientX - data.startX;
+  let newPos = data.startPos + deltaX;
+  
+  // 限制滑块在轨道内
+  if (newPos < 0) newPos = 0;
+  if (newPos > 320) newPos = 320;
+  
+  data.puzzlePosition = newPos;
+}
+
+// 停止拖动
+const stopDrag = () => {
+  if (!data.isDragging) return;
+  data.isDragging = false;
+  document.removeEventListener('mousemove', onDrag);
+  document.removeEventListener('mouseup', stopDrag);
+  
+  // 判断是否验证成功 (允许10px误差)
+  if (Math.abs(data.puzzlePosition - data.puzzleTarget) < 10) {
+    data.verified = true;
+    data.puzzlePosition = data.puzzleTarget; // 微调到正确位置
+    ElMessage.success('验证成功');
+    
+    // 延迟关闭弹窗并登录
+    setTimeout(() => {
+      data.showCaptcha = false;
+      login();
+    }, 800);
+  } else {
+    // 验证失败，滑块回到起点
+    ElMessage.error('验证失败，请重试');
+    data.puzzlePosition = 0;
   }
 }
 
-const resetPassword = () => {
-  forgetFormRef.value.validate((valid) => {
-    if (valid) {
-      request.post('/user/resetPassword', data.forgetForm).then(res => {
-        if (res.code === '200') {
-          ElMessage({
-            type: 'success',
-            message: '密码重置成功，请使用新密码登录',
-            duration: 3000
-          })
-          data.forgetVisible = false
-          // 清空表单
-          data.forgetForm = {
-            phone: '',
-            newPassword: '',
-            confirmPassword: ''
-          }
-        } else {
-          ElMessage({
-            type: 'error',
-            message: res.msg || '密码重置失败',
-            duration: 3000
-          })
+// 修改登录方法
+const login = () => {
+  data.loading = true;
+  request.post('/login', data.form).then(res => {
+    if (res.code === '200') {
+      ElMessage.success('登录成功')
+      
+      // 先保存用户信息
+      localStorage.setItem('xm-user', JSON.stringify(res.data))
+      sessionStorage.setItem('just_logged_in', 'true')
+      
+      // 用户角色和重定向路径
+      const userRole = res.data.role;
+      let redirectPath = '';
+      
+      if (userRole === 'USER') {
+        redirectPath = '/front/home';
+      } else if (userRole === 'CINEMA') {
+        redirectPath = '/manager/home';
+      } else if (userRole === 'ADMIN') {
+        redirectPath = '/manager/adminHome';
+      }
+      
+      // 确保登录状态保存后再跳转
+      setTimeout(() => {
+        // 取消加载状态，在跳转前完成
+        data.loading = false;
+        
+        // 在状态保存好后跳转
+        router.push(redirectPath);
+        
+        // 检查用户通知，但不影响登录流程
+        if (userRole === 'CINEMA') {
+          setTimeout(() => {
+            checkNotifications(res.data.id);
+          }, 1000);
         }
-      }).catch(err => {
-        ElMessage({
-          type: 'error',
-          message: '系统错误，请稍后重试',
-          duration: 3000
-        })
-      })
+      }, 500);
+    } else {
+      ElMessage.error(res.msg || '登录失败')
+      data.loading = false;
     }
-  })
+  }).catch((err) => {
+    console.error('登录请求出错:', err);
+    ElMessage.error('登录异常，请稍后重试');
+    data.loading = false;
+  });
+}
+
+// 分离通知检查逻辑为独立函数
+const checkNotifications = (userId) => {
+  if (!userId) return;
+  
+  request.get('/notice/unread', {
+    params: { userId: userId }
+  }).then(noticeRes => {
+    if (noticeRes.code === '200' && noticeRes.data && noticeRes.data.length > 0) {
+      // 找到审核通过或拒绝的通知
+      const statusNotice = noticeRes.data.find(notice => 
+        notice.title === '审核通过通知' || notice.title === '审核结果通知');
+      
+      if (statusNotice) {
+        ElMessage({
+          message: `您有一条关于审核结果的通知：${statusNotice.content}`,
+          type: statusNotice.title === '审核通过通知' ? 'success' : 'warning',
+          duration: 5000,
+          showClose: true
+        });
+        
+        // 标记该通知为已读
+        request.put(`/notice/read/${statusNotice.id}`).catch(err => {
+          console.error('标记通知已读失败:', err);
+        });
+      }
+    }
+  }).catch(err => {
+    console.error('获取通知失败:', err);
+  });
 }
 
 // 添加平滑过渡到注册页面的方法
@@ -512,23 +635,57 @@ const scrollToExtendedContent = () => {
   }
 };
 
-// 监听滚动事件，更新导航栏样式
-window.addEventListener('scroll', () => {
-  isScrolled.value = window.scrollY > 0;
-});
-
-// 添加滑块验证相关方法
-const handleSliderChange = (value) => {
-  if (value === 100) {
-    data.verified = true;
-    ElMessage.success('验证成功');
+// 显示忘记密码弹窗
+const showForgetPassword = () => {
+  data.forgetVisible = true
+  data.forgetForm = {
+    phone: '',
+    newPassword: '',
+    confirmPassword: ''
   }
 }
 
-const resetSlider = () => {
-  data.sliderValue = 0;
-  data.verified = false;
+// 重置密码
+const resetPassword = () => {
+  forgetFormRef.value.validate((valid) => {
+    if (valid) {
+      request.post('/user/resetPassword', data.forgetForm).then(res => {
+        if (res.code === '200') {
+          ElMessage({
+            type: 'success',
+            message: '密码重置成功，请使用新密码登录',
+            duration: 3000
+          })
+          data.forgetVisible = false
+          // 清空表单
+          data.forgetForm = {
+            phone: '',
+            newPassword: '',
+            confirmPassword: ''
+          }
+        } else {
+          ElMessage({
+            type: 'error',
+            message: res.msg || '密码重置失败',
+            duration: 3000
+          })
+        }
+      }).catch(err => {
+        ElMessage({
+          type: 'error',
+          message: '系统错误，请稍后重试',
+          duration: 3000
+        })
+      })
+    }
+  })
 }
+
+// 组件卸载时清除事件监听
+onBeforeUnmount(() => {
+  document.removeEventListener('mousemove', onDrag);
+  document.removeEventListener('mouseup', stopDrag);
+});
 </script>
 
 <style scoped>
@@ -541,85 +698,89 @@ const resetSlider = () => {
   overflow-x: hidden;
 }
 
-/* 顶部导航栏 */
+/* 顶部导航 */
 .top-nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 40px;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
-  background: rgba(40, 44, 52, 0.75);
-  backdrop-filter: blur(15px);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.4s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 50px;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
 }
 
 .top-nav.scrolled {
-  background: rgba(40, 44, 68, 0.95);
-  padding: 12px 40px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.85);
+  padding: 10px 50px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  cursor: pointer;
 }
 
 .logo-cinema {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  background: url('/favicon.ico') no-repeat center;
+  width: 36px;
+  height: 36px;
+  background-image: url("@/assets/imgs/logo.png");
   background-size: contain;
+  background-repeat: no-repeat;
+  margin-right: 10px;
 }
 
 .logo-text {
-  background: linear-gradient(to right, #fff, #ffc371);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   font-size: 20px;
-  letter-spacing: 0.5px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 1px;
 }
 
 .nav-links {
   display: flex;
+  align-items: center;
   gap: 30px;
 }
 
 .nav-item {
-  font-size: 16px;
   color: rgba(255, 255, 255, 0.8);
+  font-size: 16px;
   cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
   transition: all 0.3s ease;
-  position: relative;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
 }
 
 .nav-item:hover, .nav-item.active {
   color: #fff;
+  transform: translateY(-2px);
 }
 
-.nav-item::after {
+.nav-item.active {
+  color: #fff;
+  font-weight: 500;
+  position: relative;
+}
+
+.nav-item.active::after {
   content: '';
   position: absolute;
   bottom: -5px;
-  left: 0;
-  width: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
   height: 2px;
-  background: linear-gradient(to right, #ff5f6d, #ffc371);
+  background-color: #fff;
   border-radius: 1px;
-  transition: width 0.3s ease;
-}
-
-.nav-item:hover::after {
-  width: 100%;
 }
 
 /* 内容包装器 */
@@ -1127,7 +1288,7 @@ const resetSlider = () => {
 }
 
 .weixin {
-  background: rgba(255, 255, 255, 0.1) url('data:image/svg+xml;utf8,<svg t="1608888888888" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2222" width="22" height="22"><path d="M690.2 364.8c4.6 0 9.2 0.2 13.8 0.4-24.4-132.8-158.8-231.4-309.6-231.4-169 0-306.6 115.2-306.6 257.4 0 83.2 45.4 151.6 121.2 204.8l-30.2 91 106-53.2c38 7.6 68.4 15.4 106.4 15.4 9.4 0 18.8-0.2 28-1-5.4-20.2-9.2-41.2-9.2-63.4 0.2-128.8 111-233 280.2-233z m-177-89c22.8 0 38 15 38 37.8 0 22.8-15 38-38 38-22.8 0-45.4-15.2-45.4-38s22.6-37.8 45.4-37.8z m-233.6 75.8c-22.8 0-45.6-15.2-45.6-38s22.8-37.8 45.6-37.8c22.8 0 38 15 38 37.8-0.2 22.8-15.2 38-38 38z" fill="%23FFFFFF" p-id="2223"></path><path d="M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z" fill="%23FF5722" p-id="6668"></path></svg>') no-repeat center;
+  background: rgba(255, 255, 255, 0.1) url('data:image/svg+xml;utf8,<svg t="1608888888888" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2222" width="22" height="22"><path d="M690.2 364.8c4.6 0 9.2 0.2 13.8 0.4-24.4-132.8-158.8-231.4-309.6-231.4-169 0-306.6 115.2-306.6 257.4 0 83.2 45.4 151.6 121.2 204.8l-30.2 91 106-53.2c38 7.6 68.4 15.4 106.4 15.4 9.4 0 18.8-0.2 28-1-5.4-20.2-9.2-41.2-9.2-63.4 0-128.8 111-233 280.2-233z m-177-89c22.8 0 38 15 38 37.8 0 22.8-15 38-38 38-22.8 0-45.4-15.2-45.4-38s22.6-37.8 45.4-37.8z m-233.6 75.8c-22.8 0-45.6-15.2-45.6-38s22.8-37.8 45.6-37.8c22.8 0 38 15 38 37.8-0.2 22.8-15.2 38-38 38z" fill="%23FFFFFF" p-id="2223"></path><path d="M686.7 638.6L544.1 535.5V288c0-4.4-3.6-8-8-8H488c-4.4 0-8 3.6-8 8v275.4c0 2.6 1.2 5 3.3 6.5l165.4 120.6c3.6 2.6 8.6 1.8 11.2-1.7l28.6-39c2.6-3.7 1.8-8.7-1.8-11.2z" fill="%23FF5722" p-id="6668"></path></svg>') no-repeat center;
   background-size: 22px;
 }
 
@@ -1306,6 +1467,11 @@ const resetSlider = () => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+.custom-slider-button.verified {
+  background: #67c23a;
+  color: #fff;
+}
+
 .verify-slider :deep(.el-slider__button-wrapper) {
   top: -2px;
   width: 44px;
@@ -1315,5 +1481,125 @@ const resetSlider = () => {
 
 .verify-slider :deep(.el-slider__button-wrapper:active) {
   cursor: grabbing;
+}
+
+.verify-slider :deep(.el-slider__button) {
+  display: none;
+}
+
+/* 拼图验证样式 */
+.puzzle-captcha {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.puzzle-image {
+  width: 360px;
+  height: 200px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.puzzle-bg {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.puzzle-piece {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: box-shadow 0.3s;
+  z-index: 10;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+.puzzle-target {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  z-index: 5;
+}
+
+.puzzle-slider-container {
+  width: 360px;
+  height: 50px;
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.puzzle-slider-tip {
+  text-align: center;
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 10px;
+}
+
+.puzzle-slider-track {
+  width: 100%;
+  height: 40px;
+  background: #f5f7fa;
+  border-radius: 20px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.puzzle-slider-button {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: #fff;
+  top: 20px;
+  margin-top: -20px;  /* 垂直居中 */
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  z-index: 20;
+  font-size: 18px;
+  color: #909399;
+  transition: all 0.3s;
+}
+
+.puzzle-slider-button:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.puzzle-slider-button:active {
+  cursor: grabbing;
+}
+
+.puzzle-slider-button.verified {
+  background: #67c23a;
+  color: #fff;
+}
+
+.puzzle-action {
+  display: flex;
+  justify-content: center;
+  margin-top: 5px;
+}
+
+.refresh-btn {
+  font-size: 14px;
+  color: #909399;
+}
+
+.refresh-btn:hover {
+  color: #409EFF;
 }
 </style>

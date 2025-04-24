@@ -4,369 +4,178 @@
     <SnowEffect />
     
     <!-- 顶部导航 -->
-    <div class="top-nav" :class="{'scrolled': isScrolled}">
-      <div class="logo" @click="goToHome">
-        <div class="logo-icon">
-          <i class="logo-cinema"></i>
-        </div>
+    <div class="top-nav" :class="{ 'scrolled': isScrolled }">
+      <div class="logo">
+        <div class="logo-cinema"></div>
         <span class="logo-text">电影购票系统</span>
       </div>
       <div class="nav-links">
         <div class="nav-item" @click="goToHome">
-          <i class="nav-icon home-icon"></i>
-          <span>首页</span>
+          <i class="el-icon-house"></i>
+          首页
         </div>
         <div class="nav-item active">
-          <i class="nav-icon register-icon"></i>
-          <span>注册</span>
+          <i class="el-icon-user-solid"></i>
+          注册
         </div>
         <div class="nav-item" @click="goToLogin">
-          <i class="nav-icon login-icon"></i>
-          <span>登录</span>
+          <i class="el-icon-key"></i>
+          登录
         </div>
       </div>
     </div>
     
     <!-- 主要内容区域 -->
     <div class="content-wrapper">
-      <!-- 注册表单容器 -->
-      <div class="register-container" :class="{ 'appear': showContent }">
-        <div class="register-header">
+      <!-- 注册表单区域 -->
+    <div class="register-container" :class="{ 'appear': showContent }">
+      <div class="register-header">
           <h2 class="fade-in-down">欢迎注册电影购票系统</h2>
-          <div class="underline"></div>
-          <p class="register-subtitle fade-in">一站式影院服务平台</p>
-        </div>
-        
-        <!-- 角色选择开关 -->
-        <div class="role-switch fade-in-up">
-          <el-radio-group v-model="selectedRole" size="large">
-            <el-radio-button label="USER">用户注册</el-radio-button>
-            <el-radio-button label="CINEMA">影院注册</el-radio-button>
-          </el-radio-group>
-        </div>
+        <div class="underline"></div>
+          <p class="register-subtitle fade-in">一分钟注册，畅享电影世界</p>
+      </div>
 
-        <!-- 通用注册表单 -->
-        <el-form ref="formRef" :model="data.form" :rules="data.rules" label-position="top" class="fade-in-up">
-          <el-form-item prop="username" label="账号">
-            <el-input 
-              :prefix-icon="User" 
-              size="large" 
-              v-model="data.form.username" 
-              placeholder="请输入账号"
-              maxlength="20"
-              show-word-limit
-              class="custom-input"
-            >
-              <template #prepend>
-                <div class="input-label required">账号</div>
-              </template>
-            </el-input>
-          </el-form-item>
-          <el-form-item prop="name" label="昵称">
-            <el-input 
-              :prefix-icon="Avatar" 
-              size="large" 
-              v-model="data.form.name" 
-              placeholder="请输入昵称"
-              maxlength="10"
-              show-word-limit
-              class="custom-input"
-            >
-              <template #prepend>
-                <div class="input-label required">昵称</div>
-              </template>
-            </el-input>
-          </el-form-item>
-          <el-form-item prop="password">
-            <el-input 
-              show-password 
-              :prefix-icon="Lock" 
-              size="large" 
-              v-model="data.form.password" 
-              placeholder="请输入密码"
-              maxlength="20"
-              show-word-limit
-              class="custom-input"
-            >
-              <template #prepend>
-                <div class="input-label">密码</div>
-              </template>
-            </el-input>
-          </el-form-item>
-          <el-form-item prop="confirmPassword">
-            <el-input 
-              show-password 
-              :prefix-icon="Lock" 
-              size="large" 
-              v-model="data.form.confirmPassword" 
-              placeholder="请确认密码"
-              maxlength="20"
-              show-word-limit
-              class="custom-input"
-            >
-              <template #prepend>
-                <div class="input-label">确认</div>
-              </template>
-            </el-input>
-          </el-form-item>
-
-          <!-- 用户注册特有表单 -->
-          <template v-if="selectedRole === 'USER'">
-            <el-form-item prop="phone">
-              <el-input 
-                :prefix-icon="Phone" 
-                size="large" 
-                v-model="data.form.phone" 
-                placeholder="请输入手机号(选填)"
-                maxlength="11"
-                class="custom-input"
-              >
-                <template #prepend>
-                  <div class="input-label">手机</div>
-                </template>
-              </el-input>
-            </el-form-item>
-            <el-form-item prop="email" :rules="data.rules.email">
-              <el-input 
-                :prefix-icon="Message" 
-                size="large" 
-                v-model="data.form.email" 
-                placeholder="请输入邮箱"
-                class="custom-input"
-              >
-                <template #prepend>
-                  <div class="input-label required">邮箱</div>
-                </template>
-                <template #append>
-                  <el-button type="primary" @click="sendEmailCode" :disabled="emailCodeTimer > 0 || sendingCode" :loading="sendingCode">
-                    {{ emailCodeTimer > 0 ? `${emailCodeTimer}秒后重发` : (sendingCode ? '发送中...' : '发送验证码') }}
-                  </el-button>
-                </template>
-              </el-input>
-            </el-form-item>
-            <el-form-item prop="emailCode" :rules="data.rules.emailCode">
-              <div class="verification-code-container">
-                <el-input 
-                  :prefix-icon="Key" 
-                  size="large" 
-                  v-model="data.form.emailCode" 
-                  placeholder="请输入邮箱验证码"
-                  class="custom-input"
-                >
-                  <template #prepend>
-                    <div class="input-label required">验证码</div>
-                  </template>
-                </el-input>
-              </div>
-            </el-form-item>
-            
-            <!-- 添加滑块验证 -->
-            <div class="slider-verify">
-              <div class="verify-title" :class="{ 'verified': data.verified }">
-                {{ data.verified ? '验证成功' : '请向右滑动完成验证' }}
-              </div>
-              <el-slider
-                v-model="data.sliderValue"
-                :min="0"
-                :max="100"
-                :show-tooltip="false"
-                :disabled="data.verified"
-                @change="handleSliderChange"
-                class="verify-slider"
-              >
-                <template #button>
-                  <div class="custom-slider-button" :class="{ 'verified': data.verified }">
-                    <i :class="data.verified ? 'el-icon-check' : 'el-icon-right'"></i>
-                  </div>
-                </template>
-              </el-slider>
-            </div>
-          </template>
-
-          <!-- 电影院注册特有表单 -->
-          <template v-if="selectedRole === 'CINEMA'">
-            <el-form-item prop="phone">
-              <el-input 
-                :prefix-icon="Phone" 
-                size="large" 
-                v-model="data.form.phone" 
-                placeholder="请输入联系电话"
-                maxlength="11"
-                class="custom-input"
-              >
-                <template #prepend>
-                  <div class="input-label required">电话</div>
-                </template>
-              </el-input>
-            </el-form-item>
-            <el-form-item prop="email">
-              <el-input 
-                :prefix-icon="Message" 
-                size="large" 
-                v-model="data.form.email" 
-                placeholder="请输入邮箱"
-                class="custom-input"
-              >
-                <template #prepend>
-                  <div class="input-label required">邮箱</div>
-                </template>
-                <template #append>
-                  <el-button type="primary" @click="sendEmailCode" :disabled="emailCodeTimer > 0 || sendingCode" :loading="sendingCode">
-                    {{ emailCodeTimer > 0 ? `${emailCodeTimer}秒后重发` : (sendingCode ? '发送中...' : '发送验证码') }}
-                  </el-button>
-                </template>
-              </el-input>
-            </el-form-item>
-            <el-form-item prop="emailCode" :rules="data.rules.emailCode">
-              <div class="verification-code-container">
-                <el-input 
-                  :prefix-icon="Key" 
-                  size="large" 
-                  v-model="data.form.emailCode" 
-                  placeholder="请输入邮箱验证码"
-                  class="custom-input"
-                >
-                  <template #prepend>
-                    <div class="input-label required">验证码</div>
-                  </template>
-                </el-input>
-              </div>
-            </el-form-item>
-            <el-form-item prop="address">
-              <el-input 
-                :prefix-icon="Location" 
-                size="large" 
-                v-model="data.form.address" 
-                placeholder="请输入地址"
-                class="custom-input"
-              >
-                <template #prepend>
-                  <div class="input-label required">地址</div>
-                </template>
-                <template #append>
-                  <el-button @click="showMapDialog = true">地图选择</el-button>
-                </template>
-              </el-input>
-            </el-form-item>
-            <el-form-item prop="leader">
-              <el-input 
-                :prefix-icon="User" 
-                size="large" 
-                v-model="data.form.leader" 
-                placeholder="请输入负责人姓名"
-                class="custom-input"
-              >
-                <template #prepend>
-                  <div class="input-label required">负责人</div>
-                </template>
-              </el-input>
-            </el-form-item>
-            <div class="sub-title">影院认证资料（提交后审核）</div>
-            <el-form-item prop="code">
-              <el-input 
-                :prefix-icon="Document" 
-                size="large" 
-                v-model="data.form.code" 
-                placeholder="请输入负责人身份证号"
-                class="custom-input"
-              >
-                <template #prepend>
-                  <div class="input-label required">证件号</div>
-                </template>
-              </el-input>
-            </el-form-item>
-            <el-form-item prop="front">
-              <p class="field-label required">上传身份证正面照片</p>
-              <el-upload
-                :action="baseUrl + '/files/upload'"
-                :on-success="(res) => handleUploadSuccess(res, 'front')"
-                :before-upload="beforeUpload"
-                list-type="picture-card"
-                :limit="1"
-                :file-list="frontFileList"
-              >
-                <el-icon><Plus /></el-icon>
-              </el-upload>
-            </el-form-item>
-            <el-form-item prop="back">
-              <p class="field-label required">上传身份证反面照片</p>
-              <el-upload
-                :action="baseUrl + '/files/upload'"
-                :on-success="(res) => handleUploadSuccess(res, 'back')"
-                :before-upload="beforeUpload"
-                list-type="picture-card"
-                :limit="1"
-                :file-list="backFileList"
-              >
-                <el-icon><Plus /></el-icon>
-              </el-upload>
-            </el-form-item>
-            <el-form-item prop="certificate">
-              <p class="field-label required">上传营业执照</p>
-              <el-upload
-                :action="baseUrl + '/files/upload'"
-                :on-success="(res) => handleUploadSuccess(res, 'certificate')"
-                :before-upload="beforeUpload"
-                list-type="picture-card"
-                :limit="1"
-                :file-list="certificateFileList"
-              >
-                <el-icon><Plus /></el-icon>
-              </el-upload>
-            </el-form-item>
-          </template>
-
-          <el-form-item>
-            <el-button size="large" type="primary" class="register-btn" @click="register">注 册</el-button>
-          </el-form-item>
-          <div class="register-actions fade-in">
-            <el-link type="primary" @click="goToLogin" class="custom-link">已有账号？立即登录</el-link>
+        <!-- 用户角色选择 -->
+      <div class="role-switch fade-in-up">
+          <div 
+            class="role-option" 
+            :class="{ 'active': selectedRole === 'USER' }"
+            @click="selectedRole = 'USER'"
+          >
+            <el-icon><Avatar /></el-icon>
+            <span>用户注册</span>
+      </div>
+          <div 
+            class="role-option" 
+            :class="{ 'active': selectedRole === 'CINEMA' }"
+            @click="selectedRole = 'CINEMA'"
+          >
+            <el-icon><Location /></el-icon>
+            <span>影院注册</span>
           </div>
-        </el-form>
-      </div>
-    </div>
+        </div>
 
-    <!-- 地图选择对话框 -->
-    <el-dialog
-      v-model="showMapDialog"
-      title="选择影院位置"
-      width="800px"
-      destroy-on-close
-      class="custom-dialog"
-    >
-      <div class="map-container">
-        <p class="map-tip">请在地图上搜索或点击选择您影院的准确位置</p>
-        <BaiduMap
-          ref="mapRef"
-          :height="500"
-          :selectable="true"
-          @select-address="handleSelectAddress"
-        />
-      </div>
-      <div v-if="selectedLocation" class="selected-location">
-        <p><strong>已选位置：</strong>{{ selectedLocation.title }}</p>
-        <p><strong>详细地址：</strong>{{ selectedLocation.address }}</p>
-      </div>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showMapDialog = false" class="cancel-btn">取消</el-button>
-          <el-button type="primary" @click="confirmLocation" class="confirm-btn">确认选择</el-button>
-        </span>
-      </template>
-    </el-dialog>
+        <!-- 注册表单 -->
+        <el-form ref="formRef" :rules="data.rules" :model="data.form" class="fade-in-up">
+          <!-- 通用注册信息 -->
+          <el-form-item prop="username">
+            <el-input :prefix-icon="User" size="large" v-model="data.form.username" placeholder="请输入账号" class="custom-input"></el-input>
+        </el-form-item>
+          
+          <el-form-item prop="name">
+            <el-input :prefix-icon="Avatar" size="large" v-model="data.form.name" placeholder="请输入昵称" class="custom-input"></el-input>
+        </el-form-item>
+          
+        <el-form-item prop="password">
+            <el-input :prefix-icon="Lock" size="large" v-model="data.form.password" show-password placeholder="请输入密码" class="custom-input"></el-input>
+        </el-form-item>
+          
+        <el-form-item prop="confirmPassword">
+            <el-input :prefix-icon="Lock" size="large" v-model="data.form.confirmPassword" show-password placeholder="请确认密码" class="custom-input"></el-input>
+        </el-form-item>
+
+          <el-form-item prop="phone">
+            <el-input :prefix-icon="Phone" size="large" v-model="data.form.phone" placeholder="请输入手机号" class="custom-input"></el-input>
+          </el-form-item>
+          
+          <el-form-item prop="email">
+            <el-input :prefix-icon="Message" size="large" v-model="data.form.email" placeholder="请输入邮箱" class="custom-input"></el-input>
+          </el-form-item>
+          
+          <el-form-item prop="emailCode">
+            <div class="code-input-group">
+              <el-input :prefix-icon="Key" size="large" v-model="data.form.emailCode" placeholder="请输入邮箱验证码" class="custom-input"></el-input>
+              <el-button 
+                type="primary" 
+                size="large" 
+                @click="sendEmailCode" 
+                :disabled="emailCodeTimer > 0 || sendingCode"
+                class="send-code-btn"
+              >
+                {{ emailCodeTimer > 0 ? `${emailCodeTimer}秒后重发` : '获取验证码' }}
+              </el-button>
+            </div>
+          </el-form-item>
+          
+          <!-- 影院特有信息 -->
+          <template v-if="selectedRole === 'CINEMA'">
+          <el-form-item prop="address">
+              <div class="location-input-group">
+            <el-input 
+              :prefix-icon="Location" 
+              size="large" 
+              v-model="data.form.address" 
+                  placeholder="请选择影院地址" 
+                  readonly 
+              class="custom-input"
+                ></el-input>
+                <el-button type="primary" size="large" @click="showMapDialog = true" class="map-btn">选择位置</el-button>
+              </div>
+          </el-form-item>
+
+            <!-- 影院认证资料提示 -->
+            <div class="notice-box">
+              <div class="notice-title">
+                <el-icon><InfoFilled /></el-icon>
+                <span>温馨提示</span>
+              </div>
+              <div class="notice-content">
+                影院认证资料（负责人信息、证件照片等）可在注册后登录系统再提交，系统将在资料审核通过后开放完整功能。
+              </div>
+            </div>
+        </template>
+
+        <el-form-item>
+          <el-button size="large" type="primary" class="register-btn" @click="register">注 册</el-button>
+        </el-form-item>
+        <div class="register-actions fade-in">
+            <el-link type="primary" @click="goToLogin" class="custom-link">已有账号？立即登录</el-link>
+        </div>
+      </el-form>
+    </div>
+  </div>
+
+  <!-- 地图选择对话框 -->
+  <el-dialog
+    v-model="showMapDialog"
+    title="选择影院位置"
+    width="800px"
+    destroy-on-close
+    class="custom-dialog"
+  >
+    <div class="map-container">
+      <p class="map-tip">请在地图上搜索或点击选择您影院的准确位置</p>
+      <BaiduMap
+        ref="mapRef"
+        :height="500"
+        :selectable="true"
+        @select-address="handleSelectAddress"
+      />
+    </div>
+    <div v-if="selectedLocation" class="selected-location">
+      <p><strong>已选位置：</strong>{{ selectedLocation.title }}</p>
+      <p><strong>详细地址：</strong>{{ selectedLocation.address }}</p>
+    </div>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="showMapDialog = false" class="cancel-btn">取消</el-button>
+        <el-button type="primary" @click="confirmLocation" class="confirm-btn">确认选择</el-button>
+      </span>
+    </template>
+  </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { reactive, ref, watch, onMounted, onBeforeUnmount } from "vue";
-import { User, Lock, Phone, Message, Avatar, Location, Document, Plus, Key } from "@element-plus/icons-vue";
+import { User, Lock, Phone, Message, Avatar, Location, Document, Plus, Key, InfoFilled } from "@element-plus/icons-vue";
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
 import router from "@/router/index.js";
 import BaiduMap from '@/components/BaiduMap.vue';
 import axios from "axios";
 import { useRouter } from 'vue-router'
-import { baseApiUrl, emailApi } from '@/utils/api'
+import { baseApiUrl } from '@/utils/api'
 import SnowEffect from "@/components/SnowEffect.vue";
 
 const baseUrl = import.meta.env.VITE_BASE_URL;
@@ -453,11 +262,12 @@ watch(selectedRole, (newVal) => {
       { validator: validatePhone, trigger: 'blur' }
     ];
     data.rules.address = [{ required: true, message: '请输入地址', trigger: 'blur' }];
-    data.rules.leader = [{ required: true, message: '请输入负责人姓名', trigger: 'blur' }];
-    data.rules.code = [{ required: true, message: '请输入身份证号', trigger: 'blur' }];
-    data.rules.front = [{ required: true, message: '请上传身份证正面照片', trigger: 'change' }];
-    data.rules.back = [{ required: true, message: '请上传身份证反面照片', trigger: 'change' }];
-    data.rules.certificate = [{ required: true, message: '请上传营业执照', trigger: 'change' }];
+    // 以下认证资料不再是必填项
+    data.rules.leader = [];
+    data.rules.code = [];
+    data.rules.front = [];
+    data.rules.back = [];
+    data.rules.certificate = [];
   }
 });
 
@@ -588,14 +398,8 @@ const data = reactive({
       { required: true, message: '请输入邮箱', trigger: 'blur' },
       { validator: validateEmail, trigger: 'blur' }
     ],
-    emailCode: [{ required: true, message: '请输入邮箱验证码', trigger: 'blur' }],
-    verificationCode: [
-      { required: true, message: '请输入验证码', trigger: 'blur' },
-      { min: 6, max: 6, message: '验证码长度为6位', trigger: 'blur' }
-    ]
-  },
-  sliderValue: 0,
-  verified: false
+    emailCode: [{ required: true, message: '请输入邮箱验证码', trigger: 'blur' }]
+  }
 })
 
 const formRef = ref()
@@ -603,77 +407,70 @@ const formRef = ref()
 // 发送邮箱验证码 - 使用直接的axios请求绕过拦截器
 const sendEmailCode = () => {
   if (!data.form.email) {
-    ElMessage.error('请先输入邮箱')
-    return
+    ElMessage.error('请先输入邮箱');
+    return;
   }
   
-  const emailPattern = /^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z0-9]{2,6}$/
+  const emailPattern = /^[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z0-9]{2,6}$/;
   if (!emailPattern.test(data.form.email)) {
-    ElMessage.error('请输入正确的邮箱格式')
-    return
+    ElMessage.error('请输入正确的邮箱格式');
+    return;
   }
   
   // 设置发送中状态
-  sendingCode.value = true
+  sendingCode.value = true;
   
   // 显示加载提示
   const loadingMessage = ElMessage({
     type: 'info',
     message: '正在发送验证码，请稍候...',
     duration: 0
-  })
+  });
   
-  // 添加调试日志 - 记录请求开始
-  console.log('发送验证码请求准备发送:', data.form.email, '时间:', new Date().toLocaleTimeString())
-  
-  // 使用emailApi发送请求
-  emailApi.sendVerificationCode({ email: data.form.email })
-    .then(res => {
-      // 添加调试日志 - 记录成功响应
-      console.log('验证码请求返回:', res, '响应时间:', new Date().toLocaleTimeString())
-      
+  // 直接使用axios发送请求，绕过请求拦截器，避免token验证问题
+  axios.post(`${baseUrl}/email/sendVerificationCode`, { email: data.form.email })
+    .then(response => {
       // 关闭加载提示
-      loadingMessage.close()
-      sendingCode.value = false
+      loadingMessage.close();
+      sendingCode.value = false;
       
+      const res = response.data;
       if (res.code === '200') {
         ElMessage({
           type: 'success',
           message: '验证码已发送到您的邮箱，请注意查收',
           duration: 3000
-        })
+        });
         // 开始倒计时
-        emailCodeTimer.value = 60
+        emailCodeTimer.value = 60;
         emailCodeInterval.value = setInterval(() => {
-          emailCodeTimer.value--
+          emailCodeTimer.value--;
           if (emailCodeTimer.value <= 0) {
-            clearInterval(emailCodeInterval.value)
+            clearInterval(emailCodeInterval.value);
           }
-        }, 1000)
+        }, 1000);
       } else {
-        // 添加详细错误信息
-        console.error('验证码发送失败 - 业务错误:', res.msg, res)
+        console.error('验证码发送失败:', res.msg);
         ElMessage({
           type: 'error',
           message: res.msg || '验证码发送失败',
           duration: 5000
-        })
+        });
       }
     })
     .catch(err => {
-      // 添加详细错误日志
-      console.error('验证码发送请求异常:', err)
+      console.error('验证码发送请求异常:', err);
       
       // 关闭加载提示
-      loadingMessage.close()
-      sendingCode.value = false
+      loadingMessage.close();
+      sendingCode.value = false;
       
       ElMessage({
         type: 'error',
-        message: err.response?.data?.msg || '验证码发送失败，请稍后重试',
+        message: '验证码发送失败，请稍后重试',
         duration: 5000
-      })
-    })
+      });
+    });
 }
 
 // 组件卸载时清除定时器
@@ -684,11 +481,6 @@ onBeforeUnmount(() => {
 })
 
 const register = () => {
-  if (!data.verified) {
-    ElMessage.warning('请先完成滑块验证');
-    return;
-  }
-  
   formRef.value.validate(valid => {
     if (valid) {
       // 设置角色
@@ -702,19 +494,13 @@ const register = () => {
       if (!data.form.name) missingFields.push('昵称');
       if (!data.form.password) missingFields.push('密码');
       if (!data.form.confirmPassword) missingFields.push('确认密码');
-      // 移除对手机号的必填检查，仅用户类型影院需要必填手机号
       if (selectedRole.value === 'CINEMA' && !data.form.phone) missingFields.push('联系电话');
       if (!data.form.email) missingFields.push('邮箱');
       if (!data.form.emailCode) missingFields.push('邮箱验证码');
       
-      // 影院特有字段检查
+      // 影院特有必填字段检查 - 仅地址
       if (selectedRole.value === 'CINEMA') {
         if (!data.form.address) missingFields.push('地址');
-        if (!data.form.leader) missingFields.push('负责人');
-        if (!data.form.code) missingFields.push('身份证号');
-        if (!data.form.front) missingFields.push('身份证正面照片');
-        if (!data.form.back) missingFields.push('身份证反面照片');
-        if (!data.form.certificate) missingFields.push('营业执照');
       }
       
       // 如果有缺失字段，显示统一提示
@@ -730,18 +516,30 @@ const register = () => {
       // 创建注册请求数据，包含邮箱验证码
       const registerData = {
         ...data.form,
+        status: selectedRole.value === 'CINEMA' ? 'PENDING_VERIFICATION' : 'NORMAL', // 影院默认为待认证状态
         verificationCode: data.form.emailCode // 添加邮箱验证码
       };
       
+      // 显示加载提示
+      const loadingMessage = ElMessage({
+        type: 'info',
+        message: '正在提交注册信息，请稍候...',
+        duration: 0
+      });
+      
+      // 发送注册请求
       request.post('/register', registerData).then(res => {
+        // 关闭加载提示
+        loadingMessage.close();
+        
         if (res.code === '200') {
           ElMessage({
             type: 'success',
             message: selectedRole.value === 'USER' ? 
               '注册成功，即将跳转到登录页面' : 
-              '注册成功，请等待管理员审核后登录',
+              '注册成功，请登录系统完善影院认证资料后等待审核',
             duration: 2000
-          })
+          });
           
           // 设置离场动画
           showContent.value = false;
@@ -750,22 +548,26 @@ const register = () => {
           sessionStorage.setItem('from_register', 'true');
           
           setTimeout(() => {
-            router.push('/login')
-          }, 1000)
+            router.push('/login');
+          }, 1000);
         } else {
           ElMessage({
             type: 'error',
             message: res.msg || '注册失败',
             duration: 3000
-          })
+          });
         }
       }).catch(err => {
+        // 关闭加载提示
+        loadingMessage.close();
+        
+        console.error('注册请求异常:', err);
         ElMessage({
           type: 'error',
           message: '系统错误，请稍后重试',
           duration: 3000
-        })
-      })
+        });
+      });
     } else {
       // 表单验证未通过，显示提示
       ElMessage({
@@ -774,7 +576,7 @@ const register = () => {
         duration: 3000
       });
     }
-  })
+  });
 }
 
 // 处理地图选择的地址
@@ -815,19 +617,6 @@ const goToLogin = () => {
   setTimeout(() => {
     router.push('/login');
   }, 500);
-}
-
-// 添加滑块验证相关方法
-const handleSliderChange = (value) => {
-  if (value === 100) {
-    data.verified = true;
-    ElMessage.success('验证成功');
-  }
-}
-
-const resetSlider = () => {
-  data.sliderValue = 0;
-  data.verified = false;
 }
 </script>
 
@@ -886,6 +675,366 @@ const resetSlider = () => {
   opacity: 0;
 }
 
+/* 顶部导航 */
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 50px;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
+}
+
+.top-nav.scrolled {
+  background: rgba(0, 0, 0, 0.85);
+  padding: 10px 50px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.logo-cinema {
+  width: 36px;
+  height: 36px;
+  background-image: url("@/assets/imgs/logo.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  margin-right: 10px;
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.nav-item {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-item:hover, .nav-item.active {
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.nav-item.active {
+  color: #fff;
+  font-weight: 500;
+  position: relative;
+}
+
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background-color: #fff;
+  border-radius: 1px;
+}
+
+/* 内容区域 */
+.content-wrapper {
+  display: flex;
+  min-height: 100vh;
+  justify-content: center;
+  align-items: center;
+  padding: 100px 20px 50px;
+}
+
+.register-container {
+  background: rgba(255, 255, 255, 0.95);
+  width: 100%;
+  max-width: 550px;
+  padding: 45px 50px;
+  border-radius: 15px;
+  box-shadow: 0 15px 25px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.5s ease-out;
+}
+
+.register-container.appear {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.register-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.register-header h2 {
+  font-size: 28px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.underline {
+  width: 70px;
+  height: 3px;
+  background: linear-gradient(to right, #409eff, #67c23a);
+  margin: 10px auto 15px;
+  border-radius: 3px;
+}
+
+.register-subtitle {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* 角色选择器 */
+.role-switch {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 35px;
+  padding: 0 15px;
+}
+
+.role-option {
+  flex: 1;
+  padding: 18px;
+  text-align: center;
+  background: rgba(64, 158, 255, 0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-option:hover {
+  background: rgba(64, 158, 255, 0.2);
+}
+
+.role-option.active {
+  background: rgba(64, 158, 255, 0.15);
+  border-color: #409eff;
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(64, 158, 255, 0.2);
+}
+
+.role-option i {
+  font-size: 24px;
+  color: #409eff;
+}
+
+.role-option span {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* 表单样式 */
+.custom-input {
+  --el-input-height: 52px;
+  margin-bottom: 8px;
+}
+
+.custom-input :deep(.el-input__wrapper) {
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.custom-input :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.2);
+}
+
+.custom-input :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #409eff inset, 0 2px 15px rgba(64, 158, 255, 0.2);
+}
+
+.custom-input :deep(.el-input__inner) {
+  height: 52px;
+  font-size: 15px;
+}
+
+.custom-input :deep(.el-input__prefix) {
+  font-size: 18px;
+  color: #999;
+}
+
+.register-btn {
+  width: 100%;
+  margin-top: 20px;
+  height: 54px;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #409eff, #67c23a);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.register-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(64, 158, 255, 0.3);
+  background: linear-gradient(135deg, #4caaff, #78d348);
+}
+
+.register-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.custom-link {
+  font-size: 16px;
+  position: relative;
+  transition: all 0.3s ease;
+  margin: 0 15px;
+}
+
+.custom-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 1px;
+  bottom: -2px;
+  left: 50%;
+  background: currentColor;
+  transition: all 0.3s ease;
+}
+
+.custom-link:hover {
+  transform: translateY(-2px);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.custom-link:hover::after {
+  width: 100%;
+  left: 0;
+}
+
+/* 验证码输入组 */
+.code-input-group {
+  display: flex;
+  gap: 12px;
+}
+
+.code-input-group .custom-input {
+  flex: 1;
+}
+
+.send-code-btn {
+  width: 150px;
+  height: 52px;
+  border-radius: 10px;
+}
+
+/* 地址输入组 */
+.location-input-group {
+  display: flex;
+  gap: 12px;
+}
+
+.location-input-group .custom-input {
+  flex: 1;
+}
+
+.map-btn {
+  width: 110px;
+  height: 52px;
+  border-radius: 10px;
+}
+
+/* 提示框样式 */
+.notice-box {
+  background: rgba(255, 236, 220, 0.8);
+  border-left: 4px solid #ff9900;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.notice-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #ff9900;
+  margin-bottom: 8px;
+}
+
+.notice-content {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* 地图对话框 */
+.custom-dialog :deep(.el-dialog__body) {
+  padding: 20px;
+}
+
+.map-tip {
+  margin-bottom: 15px;
+  color: #666;
+}
+
+.selected-location {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+
+.selected-location p {
+  margin: 5px 0;
+  color: #333;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+}
+
+.cancel-btn, .confirm-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+}
+
+.confirm-btn {
+  background: #409eff;
+  color: white;
+}
+
 /* 浮动圆圈装饰 */
 .floating-circles {
   position: absolute;
@@ -899,7 +1048,7 @@ const resetSlider = () => {
   border-radius: 50%;
   opacity: 0.6;
   filter: blur(20px);
-}
+  }
 
 .circle-1 {
   width: 150px;
@@ -929,614 +1078,70 @@ const resetSlider = () => {
 }
 
 @keyframes float1 {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(20px, 30px) rotate(5deg); }
-  50% { transform: translate(-10px, -15px) rotate(-5deg); }
-  75% { transform: translate(-20px, 10px) rotate(3deg); }
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-20px, 15px); }
+  50% { transform: translate(15px, 25px); }
+  75% { transform: translate(20px, -15px); }
 }
 
 @keyframes float2 {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(-25px, 10px) rotate(-8deg); }
-  50% { transform: translate(20px, -10px) rotate(8deg); }
-  75% { transform: translate(10px, 20px) rotate(-4deg); }
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(15px, -20px); }
+  50% { transform: translate(-20px, -15px); }
+  75% { transform: translate(-10px, 15px); }
 }
 
 @keyframes float3 {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(15px, -20px) rotate(3deg); }
-  50% { transform: translate(-20px, 10px) rotate(-3deg); }
-  75% { transform: translate(-10px, -15px) rotate(5deg); }
-}
-
-.register-container {
-  width: 520px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 20px;
-  padding: 40px 50px;
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  transform: translateY(30px);
-  opacity: 0;
-  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-  margin-bottom: 60px;
-}
-
-.register-container.appear {
-  transform: translateY(0);
-  opacity: 1;
-}
-
-/* 离场动画效果 */
-.register-container:not(.appear) {
-  transform: translateY(-30px);
-  opacity: 0;
-}
-
-.register-header {
-  text-align: center;
-  margin-bottom: 25px;
-  position: relative;
-}
-
-.register-header h2 {
-  color: #333;
-  font-size: 28px;
-  margin: 0;
-  font-weight: bold;
-  letter-spacing: 1px;
-}
-
-.underline {
-  width: 50px;
-  height: 3px;
-  background: linear-gradient(to right, #67c23a, #409eff);
-  margin: 12px auto 0;
-  border-radius: 3px;
-  transition: width 0.4s ease;
-}
-
-.register-header:hover .underline {
-  width: 100px;
-}
-
-.role-switch {
-  margin-bottom: 30px;
-  text-align: center;
-}
-
-.role-switch :deep(.el-radio-group) {
-  background: #f5f7fa;
-  padding: 5px;
-  border-radius: 12px;
-  display: inline-flex;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-.role-switch :deep(.el-radio-button__inner) {
-  border: none;
-  background: transparent;
-  padding: 12px 30px;
-  height: auto;
-  font-size: 15px;
-  transition: all 0.3s ease;
-}
-
-.role-switch :deep(.el-radio-button__orig-radio:checked + .el-radio-button__inner) {
-  background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
-  box-shadow: 0 5px 15px rgba(255, 95, 109, 0.3);
-  color: #fff;
-  border-radius: 8px;
-}
-
-.register-btn {
-  width: 100%;
-  height: 48px;
-  font-size: 16px;
-  margin-top: 20px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
-  border: none;
-  letter-spacing: 2px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.register-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.7s ease;
-}
-
-.register-btn:hover::before {
-  left: 100%;
-}
-
-.register-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 7px 14px rgba(255, 95, 109, 0.3);
-}
-
-.register-actions {
-  display: flex;
-  justify-content: center;
-  margin-top: 18px;
-}
-
-.custom-link {
-  text-decoration: none;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.custom-link::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 1px;
-  bottom: -2px;
-  left: 50%;
-  background: currentColor;
-  transition: all 0.3s ease;
-}
-
-.custom-link:hover {
-  transform: translateY(-2px);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.custom-link:hover::after {
-  width: 100%;
-  left: 0;
-}
-
-.input-label {
-  font-size: 14px;
-  color: #606266;
-  white-space: nowrap;
-}
-
-.input-label.required::before {
-  content: '*';
-  color: #ff5f6d;
-  margin-right: 4px;
-}
-
-.field-label {
-  font-size: 14px;
-  color: #606266;
-  margin-bottom: 8px;
-}
-
-.field-label.required::before {
-  content: '*';
-  color: #ff5f6d;
-  margin-right: 4px;
-}
-
-.sub-title {
-  font-size: 16px;
-  color: #303133;
-  margin: 25px 0 15px;
-  padding-left: 10px;
-  border-left: 3px solid #ff5f6d;
-  font-weight: 500;
-}
-
-.map-container {
-  width: 100%;
-}
-
-.map-tip {
-  margin-bottom: 10px;
-  color: #606266;
-  font-size: 14px;
-}
-
-.selected-location {
-  margin-top: 15px;
-  padding: 10px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-}
-
-.selected-location p {
-  margin: 5px 0;
-  font-size: 14px;
-}
-
-.custom-input {
-  margin-bottom: 15px;
-}
-
-.custom-input :deep(.el-input__wrapper) {
-  height: 48px;
-  padding: 0 15px;
-  border-radius: 12px;
-  box-shadow: 0 0 0 1px #dcdfe6;
-  transition: all 0.3s ease;
-}
-
-.custom-input :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px #ff5f6d;
-}
-
-.custom-input :deep(.el-input-group__prepend) {
-  padding: 0 15px;
-  background: #f5f7fa;
-  border-top-left-radius: 12px;
-  border-bottom-left-radius: 12px;
-  border: none;
-  box-shadow: 0 0 0 1px #dcdfe6;
-}
-
-.custom-input :deep(.el-input-group__append) {
-  padding: 0;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-
-.custom-input :deep(.el-input-group__append .el-button) {
-  margin: 0;
-  border-radius: 12px;
-  height: 48px;
-  padding: 0 20px;
-  background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
-  border: none;
-  transition: all 0.3s ease;
-}
-
-.custom-input :deep(.el-input-group__append .el-button:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 95, 109, 0.3);
-}
-
-/* 增强对话框样式 */
-.custom-dialog :deep(.el-dialog) {
-  border-radius: 16px;
-  overflow: hidden;
-  transform: translateY(20px);
-  transition: transform 0.3s ease-out;
-}
-
-.custom-dialog :deep(.el-dialog--center) {
-  transform: translateY(0);
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  padding-top: 10px;
-}
-
-.cancel-btn, .confirm-btn {
-  min-width: 100px;
-  border-radius: 20px;
-  transition: all 0.3s ease;
-}
-
-.cancel-btn:hover {
-  transform: translateY(-2px);
-}
-
-.confirm-btn {
-  background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
-  border: none;
-}
-
-.confirm-btn:hover {
-  background: linear-gradient(135deg, #ffc371 0%, #ff5f6d 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 95, 109, 0.3);
-}
-
-/* 滚动条样式优化 */
-.register-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.register-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.register-container::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
-}
-
-.register-container::-webkit-scrollbar-thumb:hover {
-  background: #aaa;
-}
-
-/* 验证码按钮样式 */
-:deep(.el-input-group__append) {
-  padding: 0;
-}
-
-:deep(.el-input-group__append button) {
-  height: 100%;
-  margin: 0;
-  border-radius: 0 12px 12px 0;
-  padding: 0 15px;
-  background: linear-gradient(135deg, #67c23a 0%, #409eff 100%);
-  border: none;
-  transition: all 0.3s ease;
-}
-
-:deep(.el-input-group__append button:hover) {
-  background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
-}
-
-:deep(.el-input-group__append button:disabled) {
-  background: #c0c4cc;
-  color: #ffffff;
-  cursor: not-allowed;
-}
-
-.verification-code-container {
-  display: flex;
-  align-items: center;
-}
-
-.verification-code-container .el-input {
-  flex: 1;
-  margin-right: 10px;
-}
-
-.el-upload {
-  border: 2px dashed #dcdfe6;
-  border-radius: 12px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s;
-}
-
-.el-upload:hover {
-  border-color: #ff5f6d;
-  background: rgba(255, 95, 109, 0.05);
-}
-
-.el-upload-list__item {
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-/* 滑块验证样式 */
-.slider-verify {
-  margin-bottom: 25px;
-  background: #f5f7fa;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-.verify-title {
-  font-size: 15px;
-  color: #606266;
-  margin-bottom: 15px;
-  text-align: center;
-  transition: all 0.3s ease;
-  font-weight: 500;
-}
-
-.verify-title.verified {
-  color: #67c23a;
-  font-weight: 500;
-}
-
-.verify-slider :deep(.el-slider__runway) {
-  height: 44px;
-  margin: 0;
-  background-color: #e9ecef;
-  border-radius: 22px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.verify-slider :deep(.el-slider__bar) {
-  height: 44px;
-  background: linear-gradient(to right, #ff5f6d, #ffc371);
-  border-radius: 22px;
-  transition: all 0.3s ease;
-}
-
-.custom-slider-button {
-  width: 44px;
-  height: 44px;
-  border: none;
-  background: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #909399;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  cursor: grab;
-  font-size: 18px;
-}
-
-.custom-slider-button:active {
-  cursor: grabbing;
-  transform: scale(0.95);
-}
-
-.custom-slider-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.custom-slider-button.verified {
-  background: #67c23a;
-  color: #fff;
-}
-
-.verify-slider :deep(.el-slider__button-wrapper) {
-  top: -2px;
-  width: 44px;
-  height: 44px;
-  cursor: grab;
-}
-
-.verify-slider :deep(.el-slider__button-wrapper:active) {
-  cursor: grabbing;
-}
-
-.verify-slider :deep(.el-slider__button) {
-  display: none;
-}
-
-/* 顶部导航栏 */
-.top-nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 40px;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  background: rgba(40, 44, 52, 0.75);
-  backdrop-filter: blur(15px);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.4s ease;
-}
-
-.top-nav.scrolled {
-  background: rgba(40, 44, 68, 0.95);
-  padding: 12px 40px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-}
-
-.logo-icon {
-  width: 36px;
-  height: 36px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-}
-
-.logo:hover .logo-icon {
-  transform: rotate(15deg);
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.logo-cinema {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  background: url('/favicon.ico') no-repeat center;
-  background-size: contain;
-}
-
-.logo-text {
-  background: linear-gradient(to right, #fff, #ffc371);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-size: 20px;
-  letter-spacing: 0.5px;
-}
-
-.nav-links {
-  display: flex;
-  gap: 30px;
-}
-
-.nav-item {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.8);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.nav-item:hover, .nav-item.active {
-  color: #fff;
-}
-
-.nav-item::after {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: linear-gradient(to right, #ff5f6d, #ffc371);
-  border-radius: 1px;
-  transition: width 0.3s ease;
-}
-
-.nav-item:hover::after {
-  width: 30%;
-}
-
-.nav-item.active::after {
-  width: 100%;
-}
-
-.nav-icon {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  opacity: 0.9;
-}
-
-.home-icon {
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FFFFFF"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>') no-repeat center;
-  background-size: contain;
-}
-
-.register-icon {
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FFFFFF"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>') no-repeat center;
-  background-size: contain;
-}
-
-.login-icon {
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FFFFFF"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>') no-repeat center;
-  background-size: contain;
-}
-
-/* 内容包装器 */
-.content-wrapper {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 100px 20px;
-}
-
-/* 添加副标题样式 */
-.register-subtitle {
-  color: #666;
-  font-size: 16px;
-  margin-top: 10px;
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(15px, 15px); }
+  50% { transform: translate(-15px, 20px); }
+  75% { transform: translate(-20px, -10px); }
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+  .top-nav {
+    padding: 15px 20px;
+  }
+
+  .top-nav.scrolled {
+    padding: 10px 20px;
+  }
+  
+  .logo-text {
+    font-size: 18px;
+  }
+  
+  .nav-item {
+    font-size: 14px;
+    padding: 5px;
+  }
+  
+  .register-container {
+    padding: 30px 25px;
+    max-width: 95%;
+  }
+
+  .register-header h2 {
+    font-size: 24px;
+  }
+
+  .code-input-group {
+    flex-direction: column;
+  }
+
+  .send-code-btn {
+    width: 100%;
+    margin-top: 5px;
+  }
+
+  .location-input-group {
+    flex-direction: column;
+  }
+  
+  .map-btn {
+    width: 100%;
+    margin-top: 5px;
+  }
 }
 </style>

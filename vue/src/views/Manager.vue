@@ -49,7 +49,7 @@
             <el-menu-item index="/manager/actor" v-if="data.user.role === 'ADMIN'">演职人员</el-menu-item>
             <el-menu-item index="/manager/room" v-if="data.user.role === 'ADMIN' || (data.user.role === 'CINEMA' && data.user.status === '审核通过')">影厅房间</el-menu-item>
             <el-menu-item index="/manager/show" v-if="data.user.role === 'ADMIN' || (data.user.role === 'CINEMA' && data.user.status === '审核通过')">放映记录</el-menu-item>
-            <el-menu-item index="/manager/orders">购票订单</el-menu-item>
+            <el-menu-item index="/manager/orders" v-if="data.user.role === 'ADMIN' || (data.user.role === 'CINEMA' && data.user.status === '审核通过')">购票订单</el-menu-item>
             <el-menu-item index="/manager/score" v-if="data.user.role === 'ADMIN'">电影评分</el-menu-item>
             <el-menu-item index="/manager/comment" v-if="data.user.role === 'ADMIN'">评论管理</el-menu-item>
             <el-menu-item index="/manager/notice" v-if="data.user.role === 'ADMIN'">系统公告</el-menu-item>

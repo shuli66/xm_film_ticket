@@ -56,12 +56,16 @@ export const getFullImageUrl = (url) => {
 request.interceptors.request.use(config => {
     config.headers['Content-Type'] = 'application/json;charset=utf-8';
     
-    // 登录页面不需要token，直接放行所有请求
+    // 登录页面的特殊处理
     if (window.location.pathname.endsWith('/login')) {
-        // 清除登录页上的状态
-        if (localStorage.getItem('xm-user')) {
-            localStorage.removeItem('xm-user');
+        // 判断是否是登录请求
+        if (config.url.includes('/login') && config.method === 'post') {
+            // 登录请求一定放行，并记录日志
+            console.log('正在处理登录请求，确保无阻拦');
+            return config;
         }
+        
+        // 其他登录页请求也放行
         if (ENABLE_DEBUG) console.log('登录页面请求，直接放行:', config.url);
         return config;
     }
@@ -73,8 +77,17 @@ request.interceptors.request.use(config => {
         return config;
     }
     
-    // 检查用户是否已登录
-    const user = localStorage.getItem('xm-user') ? JSON.parse(localStorage.getItem('xm-user')) : null;
+    // 优先使用内存中最新的用户状态
+    let user = null;
+    try {
+        // 检查用户是否已登录
+        const userStr = localStorage.getItem('xm-user');
+        if (userStr) {
+            user = JSON.parse(userStr);
+        }
+    } catch (e) {
+        console.error('解析用户信息出错:', e);
+    }
     
     // 如果用户未登录且请求需要token
     if (!user || !user.token) {
@@ -89,7 +102,9 @@ request.interceptors.request.use(config => {
         // 对于任何需要token的API请求，如果未登录，直接跳转到登录页
         if (!isRedirecting && router.currentRoute.value.path !== '/login') {
             isRedirecting = true;
-            router.push('/login');
+            console.log('需要登录权限，跳转到登录页');
+            ElMessage.warning('请先登录系统');
+            router.push('/login?auth_error=true');
             
             // 延时恢复标志位，避免多次跳转
             setTimeout(() => {
@@ -102,7 +117,7 @@ request.interceptors.request.use(config => {
     } else {
         // 用户已登录，添加token
         config.headers['token'] = user.token;
-        if (ENABLE_DEBUG) console.log('Token已添加到请求:', config.url, '(部分Token):', user.token.substring(0, 10) + '...');
+        if (ENABLE_DEBUG) console.log('Token已添加到请求:', config.url);
     }
     
     return config;

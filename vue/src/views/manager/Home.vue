@@ -6,7 +6,7 @@
         <h1>您好，{{ data.user?.name }}！</h1>
         <p>欢迎使用本系统！</p>
       </div>
-      <div class="welcome-stats" v-if="data.user?.role === 'CINEMA'">
+      <div class="welcome-stats" v-if="data.user?.role === 'CINEMA' && isVerified">
         <div class="stat-item">
           <div class="stat-number">{{ formatPrice(data.baseStats.todayPrice || 0) }}</div>
           <div class="stat-label">今日票房(元)</div>
@@ -23,6 +23,21 @@
           <div class="stat-number">{{ data.orderStats.pendingCount || 0 }}</div>
           <div class="stat-label">待取票</div>
         </div>
+      </div>
+      
+      <!-- 未审核状态提示 -->
+      <div v-if="data.user?.role === 'CINEMA' && !isVerified" class="verification-alert">
+        <el-alert
+          title="您的影院账号尚未完成认证"
+          type="warning"
+          :closable="false"
+          show-icon
+        >
+          <div class="verification-content">
+            <p>请完善以下信息以便管理员进行审核，审核通过后将开放数据统计和全部功能。</p>
+            <el-button type="primary" @click="navigateToVerification">前往完善认证资料</el-button>
+          </div>
+        </el-alert>
       </div>
     </div>
 
@@ -59,8 +74,8 @@
         </el-timeline>
       </div>
 
-      <!-- 右侧：票务数据可视化 (仅影院管理员可见) -->
-      <div v-if="data.user?.role === 'CINEMA'" class="visualization-section">
+      <!-- 右侧：票务数据可视化 (仅影院管理员可见且已审核通过) -->
+      <div v-if="data.user?.role === 'CINEMA' && isVerified" class="visualization-section">
         <div class="dashboard-header">
           <h2>票务数据分析</h2>
           <el-select v-model="data.timeRange" placeholder="选择时间范围" size="small">
@@ -111,16 +126,61 @@
           <div class="chart-wrapper" ref="pieChartRef"></div>
         </div>
       </div>
+      
+      <!-- 右侧：未审核时展示的引导内容 -->
+      <div v-if="data.user?.role === 'CINEMA' && !isVerified" class="verification-guide">
+        <div class="guide-header">
+          <h2>认证指南</h2>
+        </div>
+        
+        <div class="guide-container">
+          <div class="guide-step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h3>完善影院资料</h3>
+              <p>提交负责人信息、营业执照、身份证等认证资料</p>
+            </div>
+          </div>
+          
+          <div class="guide-arrow"></div>
+          
+          <div class="guide-step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h3>等待审核</h3>
+              <p>管理员将在1-3个工作日内完成审核</p>
+            </div>
+          </div>
+          
+          <div class="guide-arrow"></div>
+          
+          <div class="guide-step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h3>开始使用</h3>
+              <p>审核通过后即可使用全部功能</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="verification-action">
+          <el-button type="primary" size="large" @click="navigateToVerification">
+            <i class="el-icon-s-claim"></i> 立即前往完善认证资料
+          </el-button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, watch } from "vue";
+import { reactive, ref, onMounted, watch, computed } from "vue";
 import request from "@/utils/request.js";
 import { ElMessage } from "element-plus";
 import * as echarts from 'echarts';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const lineChartRef = ref(null);
 const pieChartRef = ref(null);
 let lineChart = null;
@@ -145,6 +205,44 @@ const data = reactive({
   pieChartData: [],
   filmRanking: []
 })
+
+// 计算影院是否已经通过审核
+const isVerified = computed(() => {
+  if (data.user?.role !== 'CINEMA') return true;
+  
+  // 先检查本地存储状态
+  let localVerified = data.user.status === '审核通过' || data.user.status === 'NORMAL';
+  
+  // 如果本地状态是未审核，则从服务器获取最新状态
+  if (!localVerified) {
+    refreshUserStatus();
+  }
+  
+  return localVerified;
+});
+
+// 从服务器获取最新的用户状态
+const refreshUserStatus = () => {
+  if (!data.user || !data.user.id) return;
+  
+  request.get(`/user/detail/${data.user.id}`).then(res => {
+    if (res.code === '200' && res.data) {
+      // 如果服务器上的状态与本地不一致，更新本地状态
+      if (res.data.status !== data.user.status) {
+        data.user = res.data;
+        localStorage.setItem('xm-user', JSON.stringify(data.user));
+        ElMessage.success('用户状态已更新，请刷新页面查看最新功能');
+      }
+    }
+  }).catch(err => {
+    console.error('获取用户状态失败', err);
+  });
+};
+
+// 导航至认证页面
+const navigateToVerification = () => {
+  router.push('/manager/certificate');
+};
 
 // 格式化价格，添加千位分隔符
 const formatPrice = (price) => {
@@ -182,7 +280,7 @@ const getNoticeColor = (index) => {
 
 // 加载基础统计数据
 const loadBaseStats = () => {
-  if (data.user?.role !== 'CINEMA') return;
+  if (data.user?.role !== 'CINEMA' || !isVerified.value) return;
   
   const cinemaId = data.user.id;
   request.get('/statistics/cinemaBase', {
@@ -198,7 +296,7 @@ const loadBaseStats = () => {
 
 // 加载订单统计数据
 const loadOrderStats = () => {
-  if (data.user?.role !== 'CINEMA') return;
+  if (data.user?.role !== 'CINEMA' || !isVerified.value) return;
   
   const cinemaId = data.user.id;
   request.get('/orders/selectAll', {
@@ -264,7 +362,7 @@ const loadOrderStats = () => {
 
 // 加载票房趋势图数据
 const loadLineChartData = () => {
-  if (data.user?.role !== 'CINEMA') return;
+  if (data.user?.role !== 'CINEMA' || !isVerified.value) return;
   
   const cinemaId = data.user.id;
   request.get('/statistics/cinemaLine', {
@@ -392,13 +490,15 @@ const initPieChart = () => {
 }
 
 watch(() => data.timeRange, () => {
+  if (isVerified.value) {
   loadLineChartData();
+  }
 });
 
 onMounted(() => {
   loadNotice();
   
-  if (data.user?.role === 'CINEMA') {
+  if (data.user?.role === 'CINEMA' && isVerified.value) {
     loadBaseStats();
     loadOrderStats();
     loadLineChartData();
@@ -409,6 +509,8 @@ onMounted(() => {
       if (pieChart) pieChart.resize();
     });
   }
+  
+  refreshUserStatus();
 });
 </script>
 
@@ -804,5 +906,106 @@ onMounted(() => {
   .chart-wrapper {
     height: 250px;
   }
+}
+
+/* 认证提示样式 */
+.verification-alert {
+  margin-top: 20px;
+  width: 100%;
+}
+
+.verification-content {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.verification-content p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* 认证指南样式 */
+.verification-guide {
+  flex: 1;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  margin-left: 20px;
+}
+
+.guide-header {
+  margin-bottom: 30px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 15px;
+}
+
+.guide-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+
+.guide-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+}
+
+.guide-step {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  flex: 1;
+  max-width: 28%;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  background: #409EFF;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+  margin-right: 15px;
+}
+
+.step-content h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.step-content p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.guide-arrow {
+  width: 20px;
+  height: 20px;
+  border-top: 2px solid #ddd;
+  border-right: 2px solid #ddd;
+  transform: rotate(45deg);
+  margin: 0 10px;
+}
+
+.verification-action {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
 }
 </style>

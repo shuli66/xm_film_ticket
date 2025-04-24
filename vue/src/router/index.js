@@ -77,6 +77,15 @@ router.beforeEach((to, from, next) => {
   const user = userStr ? JSON.parse(userStr) : null;
   const isLoggedIn = user && user.token;
   
+  // 刚登录检测 - 当从登录页跳转且携带了刚登录标记时，优先放行
+  if (from.path === '/login' && sessionStorage.getItem('just_logged_in') === 'true') {
+    console.log('检测到用户刚刚登录成功，优先放行', to.path);
+    // 移除标记，避免重复使用
+    sessionStorage.removeItem('just_logged_in');
+    next();
+    return;
+  }
+  
   // 需要登录但未登录
   if (to.meta.requiresAuth && !isLoggedIn) {
     if (!hasLoginTip && !isRedirectingToLogin) {

@@ -101,9 +101,9 @@
             <el-col :span="6" v-for="item in data.recommended" :key="item.id" class="movie-card">
               <div class="movie-poster" @click="navTo('/front/filmDetail?id=' + item.id)">
                 <div class="poster-container">
-                  <img :src="item.img" :alt="item.title" class="poster-image">
-                  <div class="movie-overlay">
-                    <el-button type="primary" class="buy-ticket-btn">购票</el-button>
+                <img :src="item.img" :alt="item.title" class="poster-image">
+                <div class="movie-overlay">
+                  <el-button type="primary" class="buy-ticket-btn">购票</el-button>
                   </div>
                 </div>
                 <div class="movie-info">
@@ -129,9 +129,9 @@
             <el-col :span="6" v-for="item in data.playingData" :key="item.id" class="movie-card">
               <div class="movie-poster" @click="navTo('/front/filmDetail?id=' + item.id)">
                 <div class="poster-container">
-                  <img :src="item.img" :alt="item.title" class="poster-image">
-                  <div class="movie-overlay">
-                    <el-button type="primary" class="buy-ticket-btn">购票</el-button>
+                <img :src="item.img" :alt="item.title" class="poster-image">
+                <div class="movie-overlay">
+                  <el-button type="primary" class="buy-ticket-btn">购票</el-button>
                   </div>
                 </div>
                 <div class="movie-info">
@@ -157,7 +157,7 @@
             <el-col :span="6" v-for="item in data.noPlayData" :key="item.id" class="movie-card">
               <div class="movie-poster" @click="navTo('/front/filmDetail?id=' + item.id)">
                 <div class="poster-container">
-                  <img :src="item.img" :alt="item.title" class="poster-image">
+                <img :src="item.img" :alt="item.title" class="poster-image">
                 </div>
                 <div class="movie-info">
                   <div class="movie-title">{{ item.title }}</div>
@@ -273,7 +273,7 @@ const loadNotice = () => {
   // 1. 检查用户是否登录
   const user = JSON.parse(localStorage.getItem('xm-user') || '{}');
   const isLoggedIn = !!user.id;
-  
+
   if (!isLoggedIn) {
     // 如果用户未登录，不显示公告
     return;
@@ -289,7 +289,7 @@ const loadNotice = () => {
   
   // 3. 获取已读公告列表
   const readNotices = JSON.parse(localStorage.getItem('xm-read-notices') || '[]');
-  
+
   // 4. 获取公告数据
   request.get('/notice/selectAll').then(res => {
     if (res.code === '200' && res.data && res.data.length > 0) {
@@ -310,11 +310,11 @@ const loadNotice = () => {
       if (unreadNotices.length > 0) {
         // 设置当前公告为最新的未读公告
         data.currentNotice = unreadNotices[0];
-        
+      
         // 显示公告弹窗
-        setTimeout(() => {
-          data.noticeVisible = true;
-        }, 300);
+      setTimeout(() => {
+        data.noticeVisible = true;
+      }, 300);
       }
     }
   }).catch(err => {
@@ -470,7 +470,7 @@ onMounted(() => {
     
     // 加载公告
     setTimeout(() => {
-      loadNotice();
+  loadNotice();
     }, 1000); // 延迟1秒加载公告，确保其他数据已加载完成
   }
 });
