@@ -1,6 +1,10 @@
 package com.example.service;
 
 import cn.hutool.core.util.ObjectUtil;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.common.Constants;
 import com.example.common.enums.ResultCodeEnum;
 import com.example.common.enums.RoleEnum;
@@ -15,6 +19,8 @@ import com.example.utils.TokenUtils;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import jakarta.annotation.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -26,6 +32,11 @@ import java.util.List;
  */
 @Service
 public class UserService {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+    
+    // JWT验证码密钥 - 需要与EmailController中的密钥保持一致
+    private static final String CAPTCHA_SECRET = "YourCaptchaSecretKey123!@#";
 
     @Resource
     private UserMapper userMapper;
@@ -128,11 +139,18 @@ public class UserService {
             throw new CustomException(ResultCodeEnum.USER_EXIST_ERROR);
         }
         
-        // 验证邮箱验证码
-        String email = account.getEmail();
         String verificationCode = account.getVerificationCode();
+        String verificationType = account.getVerificationType();
         
-        if (StringUtils.isEmpty(email) || StringUtils.isEmpty(verificationCode)) {
+        if (StringUtils.isEmpty(verificationCode)) {
+            throw new CustomException(ResultCodeEnum.PARAM_ERROR);
+        }
+        
+        // 根据验证类型执行不同的验证逻辑
+        if ("EMAIL".equals(verificationType)) {
+            // 邮箱验证码验证
+            String email = account.getEmail();
+            if (StringUtils.isEmpty(email)) {
             throw new CustomException(ResultCodeEnum.PARAM_ERROR);
         }
         
@@ -150,6 +168,33 @@ public class UserService {
         
         // 验证成功后删除Redis中的验证码
         redisUtils.delete(redisKey);
+        } else if ("CAPTCHA".equals(verificationType)) {
+            // 图片验证码验证 - 使用JWT方式
+            String captchaToken = account.getCaptchaToken();
+            if (StringUtils.isEmpty(captchaToken)) {
+                throw new CustomException(ResultCodeEnum.PARAM_ERROR);
+            }
+            
+            try {
+                // 验证JWT token
+                Algorithm algorithm = Algorithm.HMAC256(CAPTCHA_SECRET);
+                JWTVerifier verifier = JWT.require(algorithm).build();
+                DecodedJWT jwt = verifier.verify(captchaToken);
+                
+                // 获取JWT中存储的验证码
+                String storedCaptcha = jwt.getClaim("captcha").asString();
+                
+                // 验证码比对（不区分大小写）
+                if (!verificationCode.equalsIgnoreCase(storedCaptcha)) {
+                    throw new CustomException(ResultCodeEnum.CODE_ERROR);
+                }
+            } catch (Exception e) {
+                logger.error("验证码验证失败: {}", e.getMessage());
+                throw new CustomException(ResultCodeEnum.CODE_ERROR);
+            }
+        } else {
+            throw new CustomException(ResultCodeEnum.PARAM_ERROR);
+        }
         
         // 创建新用户
         User newUser = new User();

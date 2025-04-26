@@ -22,6 +22,9 @@ const excludeTokenUrls = [
     // 邮箱验证相关接口 - 邮箱验证必须无需Token
     '/email/sendVerificationCode', // 发送邮箱验证码
     '/email/verifyCode',           // 验证邮箱验证码
+
+    "/email/captcha",               // 图片验证码
+    "/email/verifyCaptcha",         // 验证图片验证码
     
     // 其他公共接口
     '/files/upload',               // 文件上传

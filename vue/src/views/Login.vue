@@ -25,6 +25,17 @@
       </div>
     </div>
     
+    <!-- 全屏登录过渡加载动画 -->
+    <div class="login-transition" v-if="showLoginTransition">
+      <div class="login-transition-content">
+        <div class="login-spinner"></div>
+        <div class="welcome-message">
+          <h3>欢迎回来，{{ welcomeMessage }}</h3>
+          <p>正在加载中...</p>
+        </div>
+      </div>
+    </div>
+    
     <!-- 主要内容区域 -->
     <div class="content-wrapper">
       <!-- 登录表单区域 -->
@@ -230,10 +241,12 @@
     <el-dialog
       v-model="data.showCaptcha"
       title="请完成安全验证"
-      width="400px"
+      width="90%"
+      max-width="400px"
       :close-on-click-modal="true"
       :close-on-press-escape="true"
       center
+      class="captcha-dialog"
     >
       <div class="puzzle-captcha">
         <div class="puzzle-image">
@@ -264,6 +277,7 @@
             class="puzzle-slider-button"
             :class="{ 'verified': data.verified }"
             @mousedown="startDrag"
+            @touchstart="startTouchDrag"
             :style="{ left: data.puzzlePosition + 'px' }"
           >
             <i :class="data.verified ? 'el-icon-check' : 'el-icon-d-arrow-right'"></i>
@@ -436,6 +450,9 @@ const forgetRules = {
   ]
 }
 
+const showLoginTransition = ref(false);
+const welcomeMessage = ref('');
+
 // 处理登录按钮点击
 const handleLogin = () => {
   formRef.value.validate(valid => {
@@ -465,7 +482,7 @@ const refreshCaptcha = () => {
   }, 500);
 }
 
-// 开始拖动
+// 开始拖动 - 鼠标事件
 const startDrag = (e) => {
   if (data.verified) return;
   data.isDragging = true;
@@ -476,7 +493,19 @@ const startDrag = (e) => {
   e.preventDefault(); // 防止选中文本
 }
 
-// 拖动中
+// 开始拖动 - 触摸事件
+const startTouchDrag = (e) => {
+  if (data.verified) return;
+  data.isDragging = true;
+  data.startX = e.touches[0].clientX;
+  data.startPos = data.puzzlePosition;
+  document.addEventListener('touchmove', onTouchDrag, { passive: false });
+  document.addEventListener('touchend', stopTouchDrag);
+  document.addEventListener('touchcancel', stopTouchDrag);
+  e.preventDefault(); // 防止页面滚动
+}
+
+// 拖动中 - 鼠标事件
 const onDrag = (e) => {
   if (!data.isDragging) return;
   
@@ -490,13 +519,45 @@ const onDrag = (e) => {
   data.puzzlePosition = newPos;
 }
 
-// 停止拖动
+// 拖动中 - 触摸事件
+const onTouchDrag = (e) => {
+  if (!data.isDragging) return;
+  
+  let deltaX = e.touches[0].clientX - data.startX;
+  let newPos = data.startPos + deltaX;
+  
+  // 限制滑块在轨道内
+  if (newPos < 0) newPos = 0;
+  if (newPos > 320) newPos = 320;
+  
+  data.puzzlePosition = newPos;
+  
+  e.preventDefault(); // 防止页面滚动
+}
+
+// 停止拖动 - 鼠标事件
 const stopDrag = () => {
   if (!data.isDragging) return;
   data.isDragging = false;
   document.removeEventListener('mousemove', onDrag);
   document.removeEventListener('mouseup', stopDrag);
   
+  verifyPuzzlePosition();
+}
+
+// 停止拖动 - 触摸事件
+const stopTouchDrag = () => {
+  if (!data.isDragging) return;
+  data.isDragging = false;
+  document.removeEventListener('touchmove', onTouchDrag);
+  document.removeEventListener('touchend', stopTouchDrag);
+  document.removeEventListener('touchcancel', stopTouchDrag);
+  
+  verifyPuzzlePosition();
+}
+
+// 验证滑块位置
+const verifyPuzzlePosition = () => {
   // 判断是否验证成功 (允许10px误差)
   if (Math.abs(data.puzzlePosition - data.puzzleTarget) < 10) {
     data.verified = true;
@@ -520,11 +581,12 @@ const login = () => {
   data.loading = true;
   request.post('/login', data.form).then(res => {
     if (res.code === '200') {
-      ElMessage.success('登录成功')
+      // 显示成功消息
+      ElMessage.success('登录成功');
       
       // 先保存用户信息
-      localStorage.setItem('xm-user', JSON.stringify(res.data))
-      sessionStorage.setItem('just_logged_in', 'true')
+      localStorage.setItem('xm-user', JSON.stringify(res.data));
+      sessionStorage.setItem('just_logged_in', 'true');
       
       // 用户角色和重定向路径
       const userRole = res.data.role;
@@ -532,29 +594,39 @@ const login = () => {
       
       if (userRole === 'USER') {
         redirectPath = '/front/home';
+        welcomeMessage.value = '尊敬的用户';
       } else if (userRole === 'CINEMA') {
         redirectPath = '/manager/home';
+        welcomeMessage.value = '尊敬的影院管理员';
       } else if (userRole === 'ADMIN') {
         redirectPath = '/manager/adminHome';
+        welcomeMessage.value = '尊敬的系统管理员';
       }
+      
+      // 显示登录过渡动画
+      showLoginTransition.value = true;
       
       // 确保登录状态保存后再跳转
       setTimeout(() => {
-        // 取消加载状态，在跳转前完成
+        // 取消加载状态
         data.loading = false;
         
-        // 在状态保存好后跳转
-        router.push(redirectPath);
-        
-        // 检查用户通知，但不影响登录流程
-        if (userRole === 'CINEMA') {
-          setTimeout(() => {
-            checkNotifications(res.data.id);
-          }, 1000);
-        }
-      }, 500);
+        // 延迟跳转，给过渡动画留出足够时间
+        setTimeout(() => {
+          showLoginTransition.value = false;
+          // 在状态保存好后跳转
+          router.push(redirectPath);
+          
+          // 检查用户通知，但不影响登录流程
+          if (userRole === 'CINEMA') {
+            setTimeout(() => {
+              checkNotifications(res.data.id);
+            }, 1000);
+          }
+        }, 1000); // 过渡动画显示时间
+      }, 800);
     } else {
-      ElMessage.error(res.msg || '登录失败')
+      ElMessage.error(res.msg || '登录失败');
       data.loading = false;
     }
   }).catch((err) => {
@@ -685,6 +757,9 @@ const resetPassword = () => {
 onBeforeUnmount(() => {
   document.removeEventListener('mousemove', onDrag);
   document.removeEventListener('mouseup', stopDrag);
+  document.removeEventListener('touchmove', onTouchDrag);
+  document.removeEventListener('touchend', stopTouchDrag);
+  document.removeEventListener('touchcancel', stopTouchDrag);
 });
 </script>
 
@@ -1488,6 +1563,15 @@ onBeforeUnmount(() => {
 }
 
 /* 拼图验证样式 */
+.captcha-dialog :deep(.el-dialog__body) {
+  padding: 15px;
+}
+
+.captcha-dialog :deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
 .puzzle-captcha {
   width: 100%;
   display: flex;
@@ -1496,12 +1580,13 @@ onBeforeUnmount(() => {
 }
 
 .puzzle-image {
-  width: 360px;
-  height: 200px;
+  width: 100%;
+  max-width: 360px;
+  height: 180px;
   position: relative;
   overflow: hidden;
   margin-bottom: 20px;
-  border-radius: 6px;
+  border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
@@ -1513,20 +1598,21 @@ onBeforeUnmount(() => {
 
 .puzzle-piece {
   position: absolute;
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
   border-radius: 6px;
   cursor: pointer;
   transition: box-shadow 0.3s;
   z-index: 10;
   border: 2px solid rgba(255, 255, 255, 0.8);
+  touch-action: none; /* 防止触摸设备上的滚动和缩放 */
 }
 
 .puzzle-target {
   position: absolute;
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   background: rgba(255, 255, 255, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 6px;
@@ -1534,7 +1620,8 @@ onBeforeUnmount(() => {
 }
 
 .puzzle-slider-container {
-  width: 360px;
+  width: 100%;
+  max-width: 360px;
   height: 50px;
   position: relative;
   margin-bottom: 15px;
@@ -1558,11 +1645,11 @@ onBeforeUnmount(() => {
 
 .puzzle-slider-button {
   position: absolute;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   background: #fff;
   top: 20px;
-  margin-top: -20px;  /* 垂直居中 */
+  margin-top: -22px;  /* 垂直居中 */
   border-radius: 50%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   display: flex;
@@ -1573,6 +1660,7 @@ onBeforeUnmount(() => {
   font-size: 18px;
   color: #909399;
   transition: all 0.3s;
+  touch-action: none; /* 防止触摸设备上的滚动和缩放 */
 }
 
 .puzzle-slider-button:hover {
@@ -1597,9 +1685,91 @@ onBeforeUnmount(() => {
 .refresh-btn {
   font-size: 14px;
   color: #909399;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 4px;
 }
 
 .refresh-btn:hover {
-  color: #409EFF;
+  background-color: #f5f7fa;
+  color: #409eff;
+}
+
+/* 登录过渡动画 */
+.login-transition {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.login-transition-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+}
+
+.login-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #409eff;
+  border-radius: 50%;
+  margin-bottom: 30px;
+  animation: spin 1s linear infinite;
+}
+
+.welcome-message {
+  text-align: center;
+}
+
+.welcome-message h3 {
+  font-size: 24px;
+  margin-bottom: 10px;
+  background: linear-gradient(to right, #409eff, #67c23a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.welcome-message p {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .login-spinner {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 20px;
+  }
+  
+  .welcome-message h3 {
+    font-size: 20px;
+  }
+  
+  .welcome-message p {
+    font-size: 14px;
+  }
 }
 </style>

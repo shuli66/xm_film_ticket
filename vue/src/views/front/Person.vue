@@ -68,6 +68,11 @@ const data = reactive({
 const loadPerson = () => {
   request.get('/user/selectById/' + data.user.id).then(res => {
     if (res.code === '200') {
+      // 确保avatar URL是完整路径
+      if (res.data.avatar && !res.data.avatar.startsWith('http') && !res.data.avatar.startsWith(baseUrl)) {
+        res.data.avatar = baseUrl + res.data.avatar
+      }
+      
       data.user = res.data
       localStorage.setItem('xm-user', JSON.stringify(data.user))
     } else {
@@ -77,11 +82,20 @@ const loadPerson = () => {
 }
 loadPerson()
 const handleFileUpload = (res) => {
+  if (res.data && !res.data.startsWith('http') && !res.data.startsWith(baseUrl)) {
+    data.user.avatar = baseUrl + res.data
+  } else {
   data.user.avatar = res.data
+  }
 }
 
 const emit = defineEmits(['updateUser'])
 const update = () => {
+  // 确保avatar URL是完整路径
+  if (data.user.avatar && !data.user.avatar.startsWith('http') && !data.user.avatar.startsWith(baseUrl)) {
+    data.user.avatar = baseUrl + data.user.avatar
+  }
+  
   request.put('/user/update', data.user).then(res => {
     if (res.code === '200') {
       ElMessage.success('保存成功')

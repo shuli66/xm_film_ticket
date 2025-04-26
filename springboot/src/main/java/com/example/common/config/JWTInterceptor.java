@@ -72,6 +72,8 @@ public class JWTInterceptor implements HandlerInterceptor {
             "/map",
             "/email/sendVerificationCode",
             "/email/verifyCode",
+            "/email/captcha",               // 图片验证码
+            "/email/verifyCaptcha",         // 验证图片验证码
             "/alipay/notify",
             "/alipay/pay",
             "/files"

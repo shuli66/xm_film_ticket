@@ -19,6 +19,9 @@ public class Account {
     private String certificate;
     private String status;
     private String verificationCode;
+    private String verificationType;
+    private String captchaId;
+    private String captchaToken;
 
     public Integer getId() {
         return id;
@@ -154,5 +157,29 @@ public class Account {
 
     public void setVerificationCode(String verificationCode) {
         this.verificationCode = verificationCode;
+    }
+
+    public String getVerificationType() {
+        return verificationType;
+    }
+
+    public void setVerificationType(String verificationType) {
+        this.verificationType = verificationType;
+    }
+
+    public String getCaptchaId() {
+        return captchaId;
+    }
+
+    public void setCaptchaId(String captchaId) {
+        this.captchaId = captchaId;
+    }
+
+    public String getCaptchaToken() {
+        return captchaToken;
+    }
+
+    public void setCaptchaToken(String captchaToken) {
+        this.captchaToken = captchaToken;
     }
 }

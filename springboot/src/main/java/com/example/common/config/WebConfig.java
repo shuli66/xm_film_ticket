@@ -22,10 +22,11 @@ public class WebConfig implements WebMvcConfigurer {
                         "/register",
                         "/email/sendVerificationCode",  // 邮箱验证码
                         "/email/verifyCode",            // 验证邮箱验证码
+                        "/email/captcha",               // 图片验证码
+                        "/email/verifyCaptcha",         // 验证图片验证码
                         "/user/resetPassword",          // 重置密码
                         "/user/checkUsername",          // 检查用户名
                         "/user/checkPhone",             // 检查手机号
-                        "/user/sendCode",               // 发送短信验证码
                         "/map/**",                      // 地图相关接口
                         "/alipay/notify",               // 支付宝回调
                         "/alipay/pay",                  // 支付宝支付

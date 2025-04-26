@@ -82,20 +82,93 @@
             <el-input :prefix-icon="Message" size="large" v-model="data.form.email" placeholder="请输入邮箱" class="custom-input"></el-input>
           </el-form-item>
           
-          <el-form-item prop="emailCode">
-            <div class="code-input-group">
-              <el-input :prefix-icon="Key" size="large" v-model="data.form.emailCode" placeholder="请输入邮箱验证码" class="custom-input"></el-input>
-              <el-button 
-                type="primary" 
-                size="large" 
-                @click="sendEmailCode" 
-                :disabled="emailCodeTimer > 0 || sendingCode"
-                class="send-code-btn"
+          <!-- 验证方式切换 - 改进UI -->
+          <div class="verification-switch">
+            <span class="verification-label">验证方式：</span>
+            <div class="verification-options">
+              <div 
+                class="verification-option" 
+                :class="{ 'active': verificationType === 'captcha' }"
+                @click="changeVerificationType('captcha')"
               >
-                {{ emailCodeTimer > 0 ? `${emailCodeTimer}秒后重发` : '获取验证码' }}
-              </el-button>
+                <el-icon><Picture /></el-icon>
+                <span>图片验证码</span>
+              </div>
+              <div 
+                class="verification-option" 
+                :class="{ 'active': verificationType === 'email' }"
+                @click="changeVerificationType('email')"
+              >
+                <el-icon><Message /></el-icon>
+                <span>邮箱验证码</span>
+              </div>
+              <div 
+                class="verification-option" 
+                :class="{ 'active': verificationType === 'none' }"
+                @click="changeVerificationType('none')"
+              >
+                <el-icon><Close /></el-icon>
+                <span>跳过验证</span>
+              </div>
             </div>
-          </el-form-item>
+          </div>
+          
+          <!-- 验证码区域 - 根据验证方式显示不同内容 -->
+          <div v-if="verificationType === 'captcha'" class="captcha-container">
+            <el-form-item prop="captchaCode">
+              <el-input
+                v-model="data.form.captchaCode"
+                placeholder="请输入图片验证码"
+                clearable
+              >
+                <template #prepend>
+                  <div class="input-icon-container">
+                    <el-icon><Ticket /></el-icon>
+                  </div>
+                </template>
+                <template #append>
+                  <div class="captcha-image" @click="refreshCaptcha">
+                    <img v-if="captchaImage" :src="captchaImage" alt="验证码" />
+                    <el-icon v-else><Loading /></el-icon>
+                  </div>
+                </template>
+              </el-input>
+            </el-form-item>
+          </div>
+
+          <div v-else-if="verificationType === 'email'" class="email-code-container">
+            <el-form-item prop="emailCode">
+              <el-input
+                v-model="data.form.emailCode"
+                placeholder="请输入邮箱验证码"
+                clearable
+              >
+                <template #prepend>
+                  <div class="input-icon-container">
+                    <el-icon><Ticket /></el-icon>
+                  </div>
+                </template>
+                <template #append>
+                  <el-button
+                    :disabled="emailCodeTimer > 0"
+                    @click="sendEmailCode"
+                    class="send-code-btn"
+                  >
+                    {{ emailCodeTimer > 0 ? `${emailCodeTimer}秒后重发` : '获取验证码' }}
+                  </el-button>
+                </template>
+              </el-input>
+            </el-form-item>
+          </div>
+
+          <div v-else class="skip-verification-notice">
+            <el-alert
+              title="您已选择跳过验证，请确保提供的信息准确无误"
+              type="warning"
+              :closable="false"
+              show-icon
+            />
+          </div>
           
           <!-- 影院特有信息 -->
           <template v-if="selectedRole === 'CINEMA'">
@@ -168,7 +241,7 @@
 
 <script setup>
 import { reactive, ref, watch, onMounted, onBeforeUnmount } from "vue";
-import { User, Lock, Phone, Message, Avatar, Location, Document, Plus, Key, InfoFilled } from "@element-plus/icons-vue";
+import { User, Lock, Phone, Message, Avatar, Location, Document, Plus, Key, InfoFilled, Loading, Picture, RefreshRight, CircleClose, Close } from "@element-plus/icons-vue";
 import request from "@/utils/request.js";
 import {ElMessage} from "element-plus";
 import router from "@/router/index.js";
@@ -203,6 +276,11 @@ const emailCodeInterval = ref(null);
 // 添加加载状态变量
 const sendingCode = ref(false);
 
+// 验证方式切换（改为用字符串表示不同验证方式）
+const verificationType = ref('captcha'); // 'captcha'=图片验证码, 'email'=邮箱验证码, 'none'=跳过验证
+const captchaImage = ref('');
+const captchaToken = ref('');
+
 // 添加 goToHome 方法
 const goToHome = () => {
   router.push('/front/home');
@@ -228,6 +306,9 @@ onMounted(() => {
   // 设置滚动动画
   setupScrollAnimation();
   
+  // 默认使用图片验证码，立即加载图片验证码
+  refreshCaptcha();
+  
   // 检查是否有来自登录页面的转场状态
   const fromLogin = sessionStorage.getItem('from_login');
   if (fromLogin) {
@@ -249,13 +330,15 @@ watch(selectedRole, (newVal) => {
     ];
     // 用户类型手机号为可选项，只验证格式
     data.rules.phone = [{ validator: validatePhone, trigger: 'blur' }];
-    data.rules.emailCode = [{ required: true, message: '请输入邮箱验证码', trigger: 'blur' }];
+    data.rules.emailCode = [{ required: verificationType.value === 'email', message: '请输入邮箱验证码', trigger: 'blur' }];
+    data.rules.captchaCode = [{ required: verificationType.value === 'captcha', message: '请输入图片验证码', trigger: 'blur' }];
   } else if (newVal === 'CINEMA') {
     data.rules.email = [
       { required: true, message: '请输入邮箱', trigger: 'blur' }, 
       { validator: validateEmail, trigger: 'blur' }
     ];
-    data.rules.emailCode = [{ required: true, message: '请输入邮箱验证码', trigger: 'blur' }];
+    data.rules.emailCode = [{ required: verificationType.value === 'email', message: '请输入邮箱验证码', trigger: 'blur' }];
+    data.rules.captchaCode = [{ required: verificationType.value === 'captcha', message: '请输入图片验证码', trigger: 'blur' }];
     // 影院类型手机号为必填项
     data.rules.phone = [
       { required: true, message: '请输入联系电话', trigger: 'blur' },
@@ -269,6 +352,16 @@ watch(selectedRole, (newVal) => {
     data.rules.back = [];
     data.rules.certificate = [];
   }
+});
+
+// 监听验证方式变化，更新验证规则
+watch(verificationType, (value) => {
+  // 更新验证规则的required属性
+  data.rules.emailCode = [{ required: value === 'email', message: '请输入邮箱验证码', trigger: 'blur' }];
+  data.rules.captchaCode = [{ required: value === 'captcha', message: '请输入图片验证码', trigger: 'blur' }];
+  
+  // 清除验证状态
+  formRef.value?.clearValidate(['emailCode', 'captchaCode']);
 });
 
 // 文件上传处理
@@ -398,7 +491,8 @@ const data = reactive({
       { required: true, message: '请输入邮箱', trigger: 'blur' },
       { validator: validateEmail, trigger: 'blur' }
     ],
-    emailCode: [{ required: true, message: '请输入邮箱验证码', trigger: 'blur' }]
+    emailCode: [{ required: verificationType.value === 'email', message: '请输入邮箱验证码', trigger: 'blur' }],
+    captchaCode: [{ required: verificationType.value === 'captcha', message: '请输入图片验证码', trigger: 'blur' }]
   }
 })
 
@@ -480,6 +574,48 @@ onBeforeUnmount(() => {
   }
 })
 
+// 切换验证方式
+const changeVerificationType = (type) => {
+  verificationType.value = type;
+  // 切换验证方式时重置验证码
+  data.form.captchaCode = '';
+  data.form.emailCode = '';
+  
+  // 如果切换到图片验证码，刷新验证码
+  if (type === 'captcha') {
+    refreshCaptcha();
+  }
+};
+
+// 刷新图片验证码
+const refreshCaptcha = () => {
+  // 设置加载中状态
+  captchaImage.value = '';
+  
+  // 显示加载提示
+  const loadingMessage = ElMessage({
+    type: 'info',
+    message: '正在获取验证码...',
+    duration: 1000
+  });
+  
+  // 请求新的验证码
+  axios.get(`${baseUrl}/email/captcha`)
+    .then(response => {
+      const res = response.data;
+      if (res.code === '200') {
+        captchaImage.value = res.data.captchaImage;
+        captchaToken.value = res.data.captchaToken;
+      } else {
+        ElMessage.error('获取验证码失败，请重试');
+      }
+    })
+    .catch(err => {
+      console.error('获取图片验证码失败:', err);
+      ElMessage.error('获取验证码失败，请重试');
+    });
+}
+
 const register = () => {
   formRef.value.validate(valid => {
     if (valid) {
@@ -496,7 +632,14 @@ const register = () => {
       if (!data.form.confirmPassword) missingFields.push('确认密码');
       if (selectedRole.value === 'CINEMA' && !data.form.phone) missingFields.push('联系电话');
       if (!data.form.email) missingFields.push('邮箱');
-      if (!data.form.emailCode) missingFields.push('邮箱验证码');
+      
+      // 根据验证方式检查验证码
+      if (verificationType.value === 'email') {
+        if (!data.form.emailCode) missingFields.push('邮箱验证码');
+      } else if (verificationType.value === 'captcha') {
+        if (!data.form.captchaCode) missingFields.push('图片验证码');
+      }
+      // 当选择"跳过验证"时，不检查验证码
       
       // 影院特有必填字段检查 - 仅地址
       if (selectedRole.value === 'CINEMA') {
@@ -513,12 +656,24 @@ const register = () => {
         return;
       }
       
-      // 创建注册请求数据，包含邮箱验证码
+      // 创建注册请求数据
       const registerData = {
         ...data.form,
         status: selectedRole.value === 'CINEMA' ? 'PENDING_VERIFICATION' : 'NORMAL', // 影院默认为待认证状态
-        verificationCode: data.form.emailCode // 添加邮箱验证码
       };
+      
+      // 根据验证方式添加不同类型的验证码
+      if (verificationType.value === 'email') {
+        registerData.verificationCode = data.form.emailCode; // 添加邮箱验证码
+        registerData.verificationType = 'EMAIL'; // 标识使用邮箱验证码
+      } else if (verificationType.value === 'captcha') {
+        registerData.verificationCode = data.form.captchaCode; // 添加图片验证码
+        registerData.verificationType = 'CAPTCHA'; // 标识使用图片验证码
+        registerData.captchaToken = captchaToken.value; // 使用token而不是id
+      } else {
+        // 跳过验证的情况
+        registerData.verificationType = 'NONE'; // 标识跳过验证
+      }
       
       // 显示加载提示
       const loadingMessage = ElMessage({
@@ -556,6 +711,11 @@ const register = () => {
             message: res.msg || '注册失败',
             duration: 3000
           });
+          
+          // 如果是验证码错误且当前使用的是图片验证码，则刷新验证码
+          if (verificationType.value === 'captcha') {
+            refreshCaptcha();
+          }
         }
       }).catch(err => {
         // 关闭加载提示
@@ -1143,5 +1303,147 @@ const goToLogin = () => {
     width: 100%;
     margin-top: 5px;
   }
+}
+
+/* 验证方式切换改进样式 */
+.verification-switch {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.verification-label {
+  margin-bottom: 12px;
+  color: #606266;
+  font-size: 14px;
+}
+
+.verification-options {
+  display: flex;
+  gap: 15px;
+}
+
+.verification-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #f5f7fa;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.verification-option .el-icon {
+  font-size: 20px;
+  color: #909399;
+}
+
+.verification-option span {
+  font-size: 14px;
+  color: #606266;
+}
+
+.verification-option:hover {
+  background-color: #edf2fc;
+}
+
+.verification-option.active {
+  background-color: #ecf5ff;
+  border-color: #409eff;
+}
+
+.verification-option.active .el-icon,
+.verification-option.active span {
+  color: #409eff;
+}
+
+/* 改进图片验证码样式 */
+.captcha-image-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.captcha-image {
+  width: 120px;
+  height: 40px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #dcdfe6;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
+  position: relative;
+}
+
+.captcha-image:hover {
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.captcha-image:hover .refresh-overlay {
+  opacity: 1;
+}
+
+.refresh-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.refresh-overlay .el-icon {
+  font-size: 24px;
+  color: white;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.captcha-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.refresh-tip {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #909399;
+  cursor: pointer;
+}
+
+.refresh-tip:hover {
+  color: #409eff;
+}
+
+.captcha-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  color: #409eff;
+}
+
+/* 跳过验证提示 */
+.skip-verification-notice {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f5f7fa;
+  border-radius: 8px;
 }
 </style>
