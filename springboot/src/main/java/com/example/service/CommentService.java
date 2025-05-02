@@ -89,5 +89,14 @@ public class CommentService {
         return commentMapper.selectByUserId(userId);
     }
 
+    /**
+     * 获取指定电影的评论数量
+     * @param filmId 电影ID
+     * @return 评论数量
+     */
+    public long countByFilmId(Integer filmId) {
+        List<Comment> comments = commentMapper.selectByFilters(filmId != null ? filmId.longValue() : null, null);
+        return comments != null ? comments.size() : 0;
+    }
 
 }
