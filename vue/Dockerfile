@@ -1,5 +1,6 @@
 # 多阶段构建 - 第一阶段: 构建前端
-FROM node:18-alpine AS builder
+# 使用标准 Node 镜像而不是 Alpine，避免权限问题
+FROM node:18 AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -7,14 +8,14 @@ WORKDIR /app
 # 复制 package.json 和 package-lock.json
 COPY package*.json ./
 
-# 安装依赖
-RUN npm ci --only=production
+# 安装所有依赖
+RUN npm install
 
 # 复制源代码
 COPY . .
 
-# 构建生产版本
-RUN npm run build
+# 构建生产版本（直接使用 node 运行 vite，避免权限问题）
+RUN node node_modules/vite/bin/vite.js build --mode production
 
 # 多阶段构建 - 第二阶段: Nginx 服务
 FROM nginx:alpine

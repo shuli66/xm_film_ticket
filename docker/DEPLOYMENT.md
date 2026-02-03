@@ -1,5 +1,18 @@
 # Docker 部署说明
 
+## 📋 项目信息
+
+- **项目名称**: 电影票务管理系统 (xm_film_ticket)
+- **前端端口**: 8081 (避免与其他项目的 80/8080 端口冲突)
+- **后端端口**: 9090
+- **容器名称**:
+  - 前端: `xm_film_ticket_frontend`
+  - 后端: `xm_film_ticket_backend`
+- **Docker 网络**: `xm_film_network` (独立网络,不影响其他项目)
+- **Docker 卷**:
+  - `xm_film_upload_files` (文件上传)
+  - `xm_film_backend_logs` (后端日志)
+
 ## 📋 部署前准备
 
 ### 1. 服务器环境要求
@@ -101,7 +114,14 @@ chmod +x build.sh deploy.sh stop.sh
 在浏览器中访问:
 
 ```
-http://your-server-ip
+http://your-server-ip:8081
+```
+
+**注意**: 前端使用 **8081** 端口,而不是 80 端口,避免与服务器上其他项目冲突。
+
+后端 API 地址:
+```
+http://your-server-ip:9090
 ```
 
 ## 📝 常用命令
@@ -109,7 +129,14 @@ http://your-server-ip
 ### 查看容器状态
 
 ```bash
+# 查看本项目的容器
 docker-compose ps
+
+# 或者查看所有容器(包括其他项目)
+docker ps
+
+# 查看本项目的容器详细信息
+docker ps | grep xm_film_ticket
 ```
 
 ### 查看日志
@@ -162,10 +189,93 @@ git pull
 
 ```bash
 # 进入后端容器
-docker exec -it xm_film_backend sh
+docker exec -it xm_film_ticket_backend sh
 
 # 进入前端容器
-docker exec -it xm_film_frontend sh
+docker exec -it xm_film_ticket_frontend sh
+```
+
+## 🔍 与其他 Docker 项目共存
+
+### 端口规划
+
+本项目使用以下端口,已避免常见冲突:
+- **前端**: 8081 (而不是 80/8080)
+- **后端**: 9090
+
+如果这些端口仍然被占用,可以修改 [docker-compose.yml](docker-compose.yml):
+
+```yaml
+services:
+  frontend:
+    ports:
+      - "8082:80"  # 改为 8082 或其他未占用端口
+  backend:
+    ports:
+      - "9091:9090"  # 改为 9091 或其他未占用端口
+```
+
+### 检查端口占用
+
+```bash
+# 检查端口是否被占用
+sudo netstat -tlnp | grep -E '8081|9090'
+
+# 或使用 lsof
+sudo lsof -i :8081
+sudo lsof -i :9090
+
+# 查看所有 Docker 容器的端口映射
+docker ps --format "table {{.Names}}\t{{.Ports}}"
+```
+
+### 独立的 Docker 资源
+
+本项目使用独立命名的资源,不会与其他项目冲突:
+
+**网络**:
+```bash
+# 查看本项目的网络
+docker network ls | grep xm_film
+
+# 查看网络详情
+docker network inspect xm_film_network
+```
+
+**卷**:
+```bash
+# 查看本项目的卷
+docker volume ls | grep xm_film
+
+# 查看卷详情
+docker volume inspect xm_film_upload_files
+docker volume inspect xm_film_backend_logs
+```
+
+**容器**:
+```bash
+# 查看本项目的容器
+docker ps -a | grep xm_film_ticket
+
+# 只操作本项目的容器
+docker-compose ps
+docker-compose logs
+docker-compose restart
+```
+
+### 清理本项目资源
+
+如果需要完全清理本项目(不影响其他项目):
+
+```bash
+# 停止并删除容器
+docker-compose down
+
+# 停止并删除容器、网络、卷
+docker-compose down -v
+
+# 删除镜像
+docker rmi xm-film-backend:latest xm-film-frontend:latest
 ```
 
 ## 🔧 故障排查
@@ -181,7 +291,7 @@ docker exec -it xm_film_frontend sh
 sudo systemctl status mysql
 
 # 2. 测试容器到宿主机的连接
-docker exec -it xm_film_backend ping host.docker.internal
+docker exec -it xm_film_ticket_backend ping host.docker.internal
 
 # 3. 检查 MySQL 绑定地址
 sudo netstat -tlnp | grep 3306
@@ -218,16 +328,16 @@ sudo netstat -tlnp | grep 6379
 
 ```bash
 # 1. 检查容器网络
-docker network inspect xm_film_ticket_app-network
+docker network inspect xm_film_network
 
 # 2. 测试前端到后端的连接
-docker exec -it xm_film_frontend wget -O- http://backend:9090/actuator/health
+docker exec -it xm_film_ticket_frontend wget -O- http://backend:9090/actuator/health
 
 # 3. 检查 Nginx 配置
-docker exec -it xm_film_frontend nginx -t
+docker exec -it xm_film_ticket_frontend nginx -t
 
 # 4. 查看 Nginx 错误日志
-docker exec -it xm_film_frontend cat /var/log/nginx/error.log
+docker exec -it xm_film_ticket_frontend cat /var/log/nginx/error.log
 ```
 
 ### 问题 4: 文件上传失败
@@ -238,16 +348,16 @@ docker exec -it xm_film_frontend cat /var/log/nginx/error.log
 
 ```bash
 # 1. 检查卷挂载
-docker volume inspect xm_film_ticket_upload_files
+docker volume inspect xm_film_upload_files
 
 # 2. 检查目录权限
-docker exec -it xm_film_backend ls -la /usr/share/nginx/files
+docker exec -it xm_film_ticket_backend ls -la /usr/share/nginx/files
 
 # 3. 测试写入权限
-docker exec -it xm_film_backend touch /usr/share/nginx/files/test.txt
+docker exec -it xm_film_ticket_backend touch /usr/share/nginx/files/test.txt
 
 # 4. 如果权限不足,修改权限
-docker exec -it xm_film_backend chmod 777 /usr/share/nginx/files
+docker exec -it xm_film_ticket_backend chmod 777 /usr/share/nginx/files
 ```
 
 ### 问题 5: 容器启动失败
@@ -300,24 +410,18 @@ ENV JAVA_OPTS="-Xms1024m -Xmx2048m -XX:+UseG1GC"
 
 ## 📦 备份与恢复
 
-### 备份数据库
+### 备份上传文件
 
 ```bash
-# 备份数据库
-mysqldump -u root -p xm_film_ticket > backup_$(date +%Y%m%d).sql
-
 # 备份上传文件
-docker run --rm -v xm_film_ticket_upload_files:/data -v $(pwd):/backup ubuntu tar czf /backup/files_$(date +%Y%m%d).tar.gz /data
+docker run --rm -v xm_film_upload_files:/data -v $(pwd):/backup ubuntu tar czf /backup/files_$(date +%Y%m%d).tar.gz /data
 ```
 
-### 恢复数据库
+### 恢复上传文件
 
 ```bash
-# 恢复数据库
-mysql -u root -p xm_film_ticket < backup_20240101.sql
-
 # 恢复上传文件
-docker run --rm -v xm_film_ticket_upload_files:/data -v $(pwd):/backup ubuntu tar xzf /backup/files_20240101.tar.gz -C /
+docker run --rm -v xm_film_upload_files:/data -v $(pwd):/backup ubuntu tar xzf /backup/files_20240101.tar.gz -C /
 ```
 
 ## 📞 技术支持

@@ -1,14 +1,17 @@
 version: '3.8'
 
+# 项目名称: xm_film_ticket
+# 说明: 电影票务管理系统 Docker 部署配置
+
 services:
   # 后端服务 - Spring Boot
   backend:
     build:
-      context: ./springboot
+      context: ../springboot
       dockerfile: Dockerfile
-    container_name: xm_film_backend
+    container_name: xm_film_ticket_backend
     ports:
-      - "9090:9090"
+      - "9090:9090"  # 后端 API 端口
     environment:
       # 激活 docker 配置文件
       - SPRING_PROFILES_ACTIVE=docker
@@ -18,9 +21,9 @@ services:
       - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       # 文件上传目录 - 读写权限
-      - upload_files:/usr/share/nginx/files
+      - xm_film_upload_files:/usr/share/nginx/files
       # 日志目录
-      - backend_logs:/app/logs
+      - xm_film_backend_logs:/app/logs
     # 映射 host.docker.internal 到宿主机
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -34,36 +37,39 @@ services:
       retries: 3
       start_period: 60s
     networks:
-      - app-network
+      - xm_film_network
 
   # 前端服务 - Vue + Nginx
   frontend:
     build:
-      context: ./vue
+      context: ../vue
       dockerfile: Dockerfile
-    container_name: xm_film_frontend
+    container_name: xm_film_ticket_frontend
     ports:
-      - "80:80"
+      - "8081:80"  # 映射到宿主机 8081 端口,避免与其他项目冲突
     volumes:
       # 文件上传目录 - 只读权限
-      - upload_files:/usr/share/nginx/files:ro
+      - xm_film_upload_files:/usr/share/nginx/files:ro
     depends_on:
       backend:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - app-network
+      - xm_film_network
 
-# 定义卷
+# 定义卷 - 使用明确的命名避免与其他项目冲突
 volumes:
   # 文件上传卷
-  upload_files:
+  xm_film_upload_files:
     driver: local
+    name: xm_film_upload_files
   # 后端日志卷
-  backend_logs:
+  xm_film_backend_logs:
     driver: local
+    name: xm_film_backend_logs
 
-# 定义网络
+# 定义网络 - 使用独立的网络名称
 networks:
-  app-network:
+  xm_film_network:
     driver: bridge
+    name: xm_film_network

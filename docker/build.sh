@@ -12,15 +12,25 @@ echo ""
 
 # 检查 Docker 是否安装
 if ! command -v docker &> /dev/null; then
-    echo "错误: Docker 未安装,请先安装 Docker"
+    echo "错误: Docker 未安装"
+    echo "请查看 INSTALL_DOCKER.md 获取安装指南"
     exit 1
 fi
 
-# 检查 Docker Compose 是否安装
-if ! command -v docker-compose &> /dev/null; then
-    echo "错误: Docker Compose 未安装,请先安装 Docker Compose"
+# 检测 Docker Compose 版本
+DOCKER_COMPOSE_CMD=""
+if docker compose version &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker compose"
+    echo "✓ 检测到 Docker Compose V2"
+elif command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+    echo "✓ 检测到 Docker Compose V1"
+else
+    echo "错误: Docker Compose 未安装"
+    echo "请查看 INSTALL_DOCKER.md 获取安装指南"
     exit 1
 fi
+echo ""
 
 echo "开始构建 Docker 镜像..."
 echo ""

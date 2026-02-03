@@ -130,6 +130,31 @@
 
 ## 部署方案
 
+### 🐳 Docker 部署（推荐）
+
+所有 Docker 部署相关的文件都在 **[docker](docker/)** 目录中。
+
+**快速部署**：
+```bash
+cd docker
+./deploy.sh
+```
+
+**详细文档**：
+- **[Docker 部署指南](DOCKER_DEPLOYMENT.md)** - 部署总览
+- **[docker/README.md](docker/README.md)** - Docker 目录说明
+- **[docker/QUICKSTART.md](docker/QUICKSTART.md)** - 快速开始
+- **[docker/DEPLOYMENT.md](docker/DEPLOYMENT.md)** - 详细部署步骤
+- **[docker/INSTALL_DOCKER.md](docker/INSTALL_DOCKER.md)** - Docker 安装指南
+
+**部署信息**：
+- 前端端口: 8081
+- 后端端口: 9090
+- 容器名称: `xm_film_ticket_frontend`, `xm_film_ticket_backend`
+- Docker 网络: `xm_film_network` (独立网络，不影响其他项目)
+
+### 传统部署
+
 系统采用Docker容器化部署，主要包含以下容器：
 - Nginx容器：提供Web服务和静态资源访问
 - SpringBoot容器：运行后端应用

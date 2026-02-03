@@ -1,10 +1,13 @@
 package com.example.common.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+
+import java.util.Arrays;
 
 /**
  * 跨域配置
@@ -12,14 +15,24 @@ import org.springframework.web.filter.CorsFilter;
 @Configuration
 public class CorsConfig {
 
+    /**
+     * 从配置文件读取允许的跨域源（逗号分隔）
+     * 在 application.yml 或 application-docker.yml 中配置:
+     * cors:
+     *   allowed-origins: http://localhost:5173,http://your-server-ip:port
+     */
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
+
     @Bean
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration corsConfiguration = new CorsConfiguration();
 
-        // 设置允许的源，使用具体的域名而不是通配符
-        corsConfiguration.addAllowedOrigin("http://8.130.169.157");
-        corsConfiguration.addAllowedOrigin("http://localhost:5173"); // 开发环境
+        // 从配置文件读取允许的源（逗号分隔）
+        Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .forEach(corsConfiguration::addAllowedOrigin);
 
         // 允许携带认证信息（cookies等）
         corsConfiguration.setAllowCredentials(true);
