@@ -6,3 +6,11 @@ vue/dist
 *.iml
 *.ipr
 target
+
+# Docker 部署相关
+.env
+*.log
+logs/
+
+# 文件上传目录(本地开发)
+files/

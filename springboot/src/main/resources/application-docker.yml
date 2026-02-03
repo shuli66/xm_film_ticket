@@ -3,15 +3,17 @@ server:
 
 # 文件上传配置
 file:
-  upload-dir: /usr/share/nginx/files/  # 生产环境下保存在nginx共享目录
+  upload-dir: /usr/share/nginx/files/  # Docker 环境下的文件上传目录
 
 # 数据库配置
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
-    password: mysql0712
-    url: jdbc:mysql://mysql:3306/xm_film_ticket?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&useSSL=false&serverTimezone=GMT%2b8&allowPublicKeyRetrieval=true
+    # 密码通过环境变量注入: SPRING_DATASOURCE_PASSWORD
+    password: ${SPRING_DATASOURCE_PASSWORD:mysql0712}
+    # 使用 host.docker.internal 连接宿主机的 MySQL
+    url: jdbc:mysql://host.docker.internal:3306/xm_film_ticket?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&useSSL=false&serverTimezone=GMT%2b8&allowPublicKeyRetrieval=true
     hikari:
       minimum-idle: 5
       maximum-pool-size: 15
@@ -44,12 +46,13 @@ spring:
       socketFactory:
         class: javax.net.ssl.SSLSocketFactory
         port: 465
-  # Redis配置 - 注意使用docker服务名作为主机名
+  # Redis 配置 - 使用 host.docker.internal 连接宿主机的 Redis
   data:
     redis:
-      host: redis
+      host: host.docker.internal
       port: 6379
-      password: redis0712 # 如果有密码，请设置
+      # 密码通过环境变量注入: SPRING_DATA_REDIS_PASSWORD
+      password: ${SPRING_DATA_REDIS_PASSWORD:redis0712}
       database: 0
       timeout: 10000
       lettuce:
@@ -60,9 +63,6 @@ spring:
           min-idle: 0
   jackson:
     time-zone: Asia/Shanghai
-  # 激活生产环境的profile
-  profiles:
-    active: pro
 
 # 日志配置
 logging:
@@ -71,7 +71,6 @@ logging:
     com.example: warn
     com.example.mapper: error
     org.springframework.web: error
-    # 以下全部禁用日志输出
     org.mybatis: off
     org.springframework: error
     org.apache.ibatis: off
@@ -85,7 +84,6 @@ logging:
     org.mybatis.spring.SqlSessionUtils: off
     org.apache.ibatis.session: off
     org.apache.ibatis.logging: off
-  # 关闭控制台日志的彩色输出，以避免多余的ANSI转义字符
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
@@ -96,20 +94,20 @@ logging:
       max-file-size: 10MB
       max-history: 30
 
-# 配置mybatis实体和xml映射
+# 配置 mybatis 实体和 xml 映射
 mybatis:
   configuration:
-    # 完全禁用SQL日志
+    # 完全禁用 SQL 日志
     log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
     map-underscore-to-camel-case: true
   mapper-locations: classpath:mapper/*.xml
 
+# 文件访问基础 URL(根据实际部署域名修改)
 fileBaseUrl: http://localhost:${server.port}
 
+# 支付宝配置
 alipay:
   appId: 9021000144645160
   appPrivateKey: MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCUoRzjm62jRyWcKosvg8liRM0lAslQSGK4hduN0wAAh9xSLmKDos/9UoOU5L+GomADn+Fy1sEh/XMrAakCC4cSPnIvtQYSybpyXp5/1pt+h2OQp2bQhyq0b+kJ7LNYYSiaJyAlj6vaNkM9G1I3tw56q9AW0lvK8juCI8xqcO8SALfkUET18oC24mee5i3wK8MxPHTLOv0EpX25+Wn84k1zfdWHjifPBzxOUZ5DdYW8P/EbxxEuAh6nQLMEeXekBElQ7u+9eTuoQSJkcDEZuwwyCNay+oIPfMRzWpZ+brHgjcEMZ8HqztEyJfZVZEYd9da12r/VHImBOCoPbbQIoTWpAgMBAAECggEAUJozBYhGmTabQd6cjs8EZoNzUS/6pswqpXEKSRZ1eNQ0+mhnSoYAD5ww+Y04BLaIJU8OP24RXPKLA3aqBg7kWFN/LzoXqha2QxHnGOL0fqDDsQ3npwy2bxYFpjk0ZaiDEV5Ig7Yvd25X9oqbgtWGR6ZnegjoeN32wbPSRqMqM3NQPpIVQsgu3GRA106DhH8mookHABmpMRiOeWEqsj4YS5i2UtfC4QQhUEArHRhIyBvsoXSXRdNMPZlGWxWyIVvXduKMSMvfhiyve1YwmhtL38w5IxCzmi2wB74lFbSmtMYbS8yOfxsRNVuwfYfm1XB7EYWAedzhZPN6mKdCn5fCAQKBgQD5miXjffvjQMxpqzVx7iQDfvE6aoOB1HtQE3nJVHZC5BTNyYDnBR4Wg52SxxjnNmr7Twr7g4enR0DHUogitbgTYQdvRppZBiKJJwKggEX2ZFUkhows/4AHDxoO4SyXWgEhb6vPaGHMjxrG6doJLYrAUaa7yfeX2eY0F2IYR+mvaQKBgQCYcGV9ReDHP6cDtdJaEcG2rj20SWrpaM+A5TPqtV4DY2ZzwPm+ByofgDqBw3WQXbw0m1IlR2eor+fON9D7VT4QvGGreH18FaVnfTDb3GUlKq8hOf7MCM+gUUGypyoHRN/JyUOMQkPfYysujAPoWjo0YJVMgKhpCy7I7Y07DeTMQQKBgQDpJDnlv0SrZVhKD1iRfY34EfeCyADkITO5fSeRjaoVGvPvsBsOLrKG9xMVCZFSTnspGBC7E4V/E0gHpihwu2of9864+qqrItbZYy3J+2beGaOJxX9jfJf6f/moEl3TVYee0q8ZwXcwWi75w28ciYSD1QC3gZQaK7chywGeinVVmQKBgDI1gxgZ9glqq8YLEzfbdWSIS4agT/iFLyOTWuBJ0KdpDAvAWgH/Nh6eC6dGC+j7Fsx1BD+HH1tuZPmFZO4Di6fThJAH5b0DHDHUCE3CcAYn4vscsRHfLRPu76a6bJtsUhGSmw8NnHFtpoF0WK0lWtp5nXNPRSkkJ8rCg6wZzWyBAoGBAJfi48XRHioFMMwILALhIsZ4QtVOzi4hMwKzyNFiihjy/bNHOAoQeehw28GY540SFsRo6KytUDd1ionYZ0yzlZudP47oP+tm+F3cAUHWQvHPaCeSU7YheZKYE6y0yf+AsPyjuJrtYPhh+uqOFkNYR6RLbvVfVY+K7cezx0EewXeb
   alipayPublicKey: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAujw81tiedUBlZbpYsTbz9XqrOYYNOn1Ezsb4H29TuD6xvKgMW7EJp/rwfMhlUSsNmhNOcav/geGFzckA1bolOzog+k8E8McYcPsXfxNB9c33lk7EvaOJdxx8argrFhkXa51WP0VNmzdW0+lPHDRVZ8nMO6LnypHafis7RMJcjV9jXS2yjlpJ8yHzsYGCLTpnlNjszYbV2hQ3qcPmRh8ctWFMxEsNAigTfZIhjari9IRU60rCdASkO5VeMvC5NfdDT0bIbwSHhnJa68kdjUN5RaHkkLVknsU8ZkJpGgxrED57kAqgH3qHPumGSEyqxe39AuNKc15Nxn9761HLRStbpQIDAQAB
-  notifyUrl: http://43.142.172.115/alipay/notify  # 修改为实际的回调URL
-
-
+  notifyUrl: http://your-domain.com/alipay/notify  # 请修改为实际的回调 URL

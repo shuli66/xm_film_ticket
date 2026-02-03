@@ -1,59 +1,69 @@
-services:
-  nginx: # 服务名称，用户自定义
-    image: nginx:latest  # 镜像版本
-    ports:
-      - 80:80  # 暴露端口
-    volumes: # 挂载
-      - /root/nginx/html:/usr/share/nginx/html
-      - /root/nginx/nginx.conf:/etc/nginx/nginx.conf
-      - /root/nginx/files:/usr/share/nginx/files  # 共享文件目录
-    privileged: true # 这个必须要，解决nginx的文件调用的权限问题
-  mysql:
-    image: mysql:8.0
-    ports:
-      - 3306:3306
-    environment: # 指定用户root的密码
-      - MYSQL_ROOT_PASSWORD=123456
-      - MYSQL_DATABASE=xm_film_ticket
-    command: --default-authentication-plugin=mysql_native_password  # 使用旧的认证插件
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
-          memory: 512M
-    restart: always
-    volumes:
-      - mysql_data:/var/lib/mysql  # 持久化MySQL数据
-  redis:
-    image: redis:latest
-    ports:
-      - 6379:6379
-    command: redis-server --appendonly yes  # 启用AOF持久化
-    volumes:
-      - redis_data:/data  # 持久化Redis数据
-  springboot:
-    image: springboot:latest
-    build: . # 表示以当前目录下的Dockerfile开始构建镜像
-    ports:
-      - 9090:9090
-    volumes:
-      - /root/nginx/files:/usr/share/nginx/files  # 文件上传目录
-      - /root/java_project:/app/logs  # 日志目录挂载
-    environment:
-      - SPRING_PROFILES_ACTIVE=pro  # 使用生产环境配置
-      - JAVA_OPTS=-Xmx512m -Xms256m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8 -Dlogging.level.org.mybatis=ERROR -Dlogging.level.org.springframework=ERROR
-    depends_on: # 依赖与mysql、redis，其实可以不填，默认已经表示可以
-      - mysql
-      - redis
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"  # 每个日志文件最大大小
-        max-file: "3"    # 最多保留3个日志文件
+version: '3.8'
 
-# 定义持久化卷
+services:
+  # 后端服务 - Spring Boot
+  backend:
+    build:
+      context: ./springboot
+      dockerfile: Dockerfile
+    container_name: xm_film_backend
+    ports:
+      - "9090:9090"
+    environment:
+      # 激活 docker 配置文件
+      - SPRING_PROFILES_ACTIVE=docker
+      # 数据库配置(从 .env 文件读取)
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
+      # Redis 配置(从 .env 文件读取)
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      # 文件上传目录 - 读写权限
+      - upload_files:/usr/share/nginx/files
+      # 日志目录
+      - backend_logs:/app/logs
+    # 映射 host.docker.internal 到宿主机
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # 重启策略
+    restart: unless-stopped
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - app-network
+
+  # 前端服务 - Vue + Nginx
+  frontend:
+    build:
+      context: ./vue
+      dockerfile: Dockerfile
+    container_name: xm_film_frontend
+    ports:
+      - "80:80"
+    volumes:
+      # 文件上传目录 - 只读权限
+      - upload_files:/usr/share/nginx/files:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+
+# 定义卷
 volumes:
-  mysql_data:  # MySQL数据持久化
-  redis_data:  # Redis数据持久化
+  # 文件上传卷
+  upload_files:
+    driver: local
+  # 后端日志卷
+  backend_logs:
+    driver: local
+
+# 定义网络
+networks:
+  app-network:
+    driver: bridge
