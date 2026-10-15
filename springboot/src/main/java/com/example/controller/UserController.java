@@ -2,8 +2,10 @@ package com.example.controller;
 
 import com.example.common.Result;
 import com.example.common.enums.ResultCodeEnum;
+import com.example.entity.Account;
 import com.example.entity.User;
 import com.example.service.UserService;
+import com.example.utils.TokenUtils;
 import com.github.pagehelper.PageInfo;
 import jakarta.annotation.Resource;
 import org.springframework.util.StringUtils;
@@ -34,6 +36,18 @@ public class UserController {
 
     @PostMapping("/recharge")
     public Result recharge(@RequestBody User user) {
+        // 权限校验：只允许操作自己的账户
+        Account currentUser = TokenUtils.getCurrentUser();
+        if (currentUser == null) {
+            return Result.error("401", "请先登录");
+        }
+        if (!currentUser.getId().equals(user.getId())) {
+            return Result.error("403", "无权操作他人账户");
+        }
+        // 金额校验：充值金额必须大于0
+        if (user.getAccount() == null || user.getAccount() <= 0) {
+            return Result.error("400", "充值金额必须大于0");
+        }
         User dbUser = userService.recharge(user);
         return Result.success(dbUser);
     }

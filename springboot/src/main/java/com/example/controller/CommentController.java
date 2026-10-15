@@ -88,10 +88,6 @@ public class CommentController {
                                  @RequestParam(defaultValue = "1") Integer pageNum,
                                    @RequestParam(defaultValue = "10") Integer pageSize) {
 
-        // 打印参数确认是否正确接收
-        System.out.println("filmId: " + filmId);
-        System.out.println("commentText: " + commentText);
-
         // 获取评论列表，根据传入的条件进行筛选
         PageInfo<Comment> comments = commentService.selectCommentsByFilters(filmId, commentText, pageNum, pageSize);
 

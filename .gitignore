@@ -1,16 +1,24 @@
+# 依赖
+node_modules/
 vue/node_modules
+
+# 构建产物
 springboot/target
 vue/dist
+target
+
+# IDE 配置
 .idea
 *.iws
 *.iml
 *.ipr
-target
 
-# Docker 部署相关
-.env
+# 日志
 *.log
 logs/
 
-# 文件上传目录(本地开发)
+# 文件上传目录(本地开发，不提交到git)
 files/
+
+# 本地环境配置
+.env

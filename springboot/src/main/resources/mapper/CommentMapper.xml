@@ -24,7 +24,7 @@
 
     <!-- 管理员删除评论 -->
     <delete id="deleteCommentByAdmin">
-        DELETE FROM comment WHERE id = #{commentId} AND user_id != #{userId}
+        DELETE FROM comment WHERE id = #{commentId}
     </delete>
 
 
