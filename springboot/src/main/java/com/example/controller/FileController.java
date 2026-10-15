@@ -53,19 +53,23 @@ public class FileController {
      */
     @GetMapping("/download/{fileName}")
     public void download(@PathVariable String fileName, HttpServletResponse response) {
+        // 安全校验：防止路径遍历攻击（如 ../../../etc/passwd）
+        if (StrUtil.isEmpty(fileName) || fileName.contains("..") || fileName.contains("/") || fileName.contains("\\")) {
+            log.warn("非法文件名请求被拦截：{}", fileName);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
         OutputStream os;
         try {
-            if (StrUtil.isNotEmpty(fileName)) {
-                response.addHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
-                response.setContentType("application/octet-stream");
-                byte[] bytes = FileUtil.readBytes(uploadPath + fileName);
-                os = response.getOutputStream();
-                os.write(bytes);
-                os.flush();
-                os.close();
-            }
+            response.addHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+            response.setContentType("application/octet-stream");
+            byte[] bytes = FileUtil.readBytes(uploadPath + fileName);
+            os = response.getOutputStream();
+            os.write(bytes);
+            os.flush();
+            os.close();
         } catch (Exception e) {
-            log.warn("文件下载失败：" + fileName);
+            log.warn("文件下载失败：{}", fileName);
         }
     }
 }

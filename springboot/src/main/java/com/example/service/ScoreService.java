@@ -50,14 +50,50 @@ public class ScoreService {
         filmMapper.updateById(film);
     }
 
+    /**
+     * 删除评分并重新计算该电影的平均分
+     */
+    @Transactional
     public void deleteById(Integer id) {
+        Score score = scoreMapper.selectById(id);
         scoreMapper.deleteById(id);
+        // 重新计算该电影的平均评分
+        if (score != null) {
+            recalcFilmScore(score.getFilmId());
+        }
     }
 
+    @Transactional
     public void deleteBatch(List<Integer> ids) {
+        // 先收集受影响的 filmId
+        java.util.Set<Integer> filmIds = new java.util.HashSet<>();
         for (Integer id : ids) {
+            Score score = scoreMapper.selectById(id);
+            if (score != null) {
+                filmIds.add(score.getFilmId());
+            }
             scoreMapper.deleteById(id);
         }
+        // 批量重新计算评分
+        for (Integer filmId : filmIds) {
+            recalcFilmScore(filmId);
+        }
+    }
+
+    /**
+     * 重新计算并更新电影平均评分
+     */
+    private void recalcFilmScore(Integer filmId) {
+        List<Score> listFilm = scoreMapper.selectByFilmId(filmId);
+        Film film = filmMapper.selectById(filmId);
+        if (film == null) return;
+        if (listFilm == null || listFilm.isEmpty()) {
+            film.setScore(0.0);
+        } else {
+            double sum = listFilm.stream().mapToDouble(Score::getScore).sum();
+            film.setScore(sum / listFilm.size());
+        }
+        filmMapper.updateById(film);
     }
 
     public Score selectById(Integer id) {

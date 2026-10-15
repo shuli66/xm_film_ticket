@@ -9,12 +9,10 @@ import com.example.exception.CustomException;
 import com.example.mapper.FilmMapper;
 import com.example.mapper.FilmShowMapper;
 import com.example.mapper.OrdersMapper;
-import com.example.mapper.UserMapper;
 import com.example.utils.TokenUtils;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import jakarta.annotation.Resource;
-import org.apache.el.parser.Token;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,8 +32,6 @@ public class OrdersService {
     @Resource
     private FilmShowMapper filmShowMapper;
     @Resource
-    private UserMapper userMapper;
-    @Resource
     private FilmMapper filmMapper;
 
     @Transactional
@@ -51,9 +47,6 @@ public class OrdersService {
         orders.setPrice(filmShow.getPrice() * orders.getSeatList().size());
         orders.setSeat(JSONUtil.toJsonStr(orders.getSeatList()));
 
-        User user = userMapper.selectById(currentUser.getId());
-
-        userMapper.updateById(user);
         ordersMapper.insert(orders);
 
     }
@@ -97,24 +90,40 @@ public class OrdersService {
         return PageInfo.of(list);
     }
 
+    @Transactional
     public void cancel(Integer id) {
         Orders orders = ordersMapper.selectById(id);
+        if (orders == null) {
+            throw new CustomException("500", "订单不存在");
+        }
+        // 校验当前用户是否是订单主人
+        Account currentUser = TokenUtils.getCurrentUser();
+        if (currentUser != null && RoleEnum.USER.name().equals(currentUser.getRole())) {
+            if (!orders.getUserId().equals(currentUser.getId())) {
+                throw new CustomException("403", "无权操作他人订单");
+            }
+        }
+        // 只有待支付或待取票状态才能退票
+        if (!"待支付".equals(orders.getStatus()) && !"待取票".equals(orders.getStatus())) {
+            throw new CustomException("500", "当前订单状态不允许退票");
+        }
+        // 时间校验：开场前1小时内不能退（毫秒比较，3600*1000=3600000）
         long time = DateUtil.parse(orders.getTime(), "yyyy-MM-dd HH:mm:ss").getTime();
         long now = DateUtil.parse(DateUtil.now(), "yyyy-MM-dd HH:mm:ss").getTime();
-        if (now + 3600 > time) {
+        if (now + 3600000L > time) {
             throw new CustomException("500", "您已错过退票时间，无法退票");
         }
+        // 保存原状态，判断是否需要扣减票房（只有已支付的才有票房）
+        String originalStatus = orders.getStatus();
         orders.setStatus("已退票");
         ordersMapper.updateById(orders);
-//        // 返回用户的钱
-//        User user = userMapper.selectById(orders.getUserId());
-//        user.setAccount(user.getAccount() + orders.getPrice());
-//        userMapper.updateById(user);
-        // 扣除电影的票房
-        Film film = filmMapper.selectById(orders.getFilmId());
-        if (ObjectUtil.isNotEmpty(film)) {
-            film.setTotal(film.getTotal() - orders.getPrice());
-            filmMapper.updateById(film);
+        // 扣除电影的票房（仅已支付=待取票 的订单才扣）
+        if ("待取票".equals(originalStatus)) {
+            Film film = filmMapper.selectById(orders.getFilmId());
+            if (ObjectUtil.isNotEmpty(film)) {
+                film.setTotal(film.getTotal() - orders.getPrice());
+                filmMapper.updateById(film);
+            }
         }
     }
 
