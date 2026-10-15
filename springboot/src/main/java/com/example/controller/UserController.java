@@ -2,6 +2,7 @@ package com.example.controller;
 
 import com.example.common.Result;
 import com.example.common.enums.ResultCodeEnum;
+import com.example.common.enums.RoleEnum;
 import com.example.entity.Account;
 import com.example.entity.User;
 import com.example.service.UserService;
@@ -57,6 +58,13 @@ public class UserController {
      */
     @PutMapping("/update")
     public Result update(@RequestBody User user) {
+        // 归属校验：普通用户只能修改自己的资料
+        Account currentUser = TokenUtils.getCurrentUser();
+        if (currentUser != null && RoleEnum.USER.name().equals(currentUser.getRole())) {
+            if (!currentUser.getId().equals(user.getId())) {
+                return Result.error("403", "无权修改他人资料");
+            }
+        }
         userService.updateById(user);
         return Result.success();
     }

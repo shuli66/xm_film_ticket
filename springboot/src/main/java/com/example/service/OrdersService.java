@@ -18,8 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 订单信息业务层方法
@@ -41,6 +43,25 @@ public class OrdersService {
         orders.setOrderNo(DateUtil.format(new Date(), "yyyyMMddHHmmss"));
         orders.setCreateTime(DateUtil.now());
         orders.setStatus("待支付");
+
+        // 服务端座位冲突校验：查同场次所有未退票订单，取交集
+        Orders query = new Orders();
+        query.setShowId(orders.getShowId());
+        List<Orders> existingOrders = ordersMapper.selectAll(query);
+        Set<String> soldSeats = new HashSet<>();
+        for (Orders existing : existingOrders) {
+            if (!"已退票".equals(existing.getStatus())) {
+                List<Seat> seats = JSONUtil.toList(existing.getSeat(), Seat.class);
+                for (Seat seat : seats) {
+                    soldSeats.add(seat.getRow() + "-" + seat.getCol());
+                }
+            }
+        }
+        for (Seat seat : orders.getSeatList()) {
+            if (soldSeats.contains(seat.getRow() + "-" + seat.getCol())) {
+                throw new CustomException("500", "座位 " + seat.getRow() + "排" + seat.getCol() + "列 已被占用，请重新选座");
+            }
+        }
 
         // 计算订单总价格
         FilmShow filmShow = filmShowMapper.selectById(orders.getShowId());

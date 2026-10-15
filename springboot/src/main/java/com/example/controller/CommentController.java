@@ -2,10 +2,12 @@ package com.example.controller;
 
 import com.example.common.Result;
 import com.example.common.enums.ResultCodeEnum;
+import com.example.entity.Account;
 import com.example.entity.Comment;
 import com.example.entity.User;
 import com.example.service.CommentService;
 import com.example.service.UserService;
+import com.example.utils.TokenUtils;
 import com.github.pagehelper.PageInfo;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
@@ -144,7 +146,12 @@ public class CommentController {
             return Result.error(ResultCodeEnum.PARAM_ERROR.code, "评论内容不能为空");
         }
 
-        // 设置修改时间
+        // 归属校验：只能修改自己的评论
+        Account currentUser = TokenUtils.getCurrentUser();
+        if (currentUser != null && !currentUser.getId().equals(comment.getUserId())) {
+            return Result.error("403", "无权修改他人评论");
+        }
+
         // 设置当前时间为修改时间
         comment.setCreateTime(LocalDateTime.now());
 
